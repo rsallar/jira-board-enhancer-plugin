@@ -5,13 +5,12 @@ function createSubtaskListDOM(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
 
   const ul = document.createElement('ul');
-  ul.className = 'subtask-list'; // Clase para el UL
+  ul.className = 'subtask-list';
 
   subtasksData.forEach(subtask => {
     const li = document.createElement('li');
-    li.className = 'subtask-item'; // Clase para cada LI
+    li.className = 'subtask-item';
 
-    // Contenedor principal para icono y título (se alineará a la izquierda)
     const mainContentSpan = document.createElement('span');
     mainContentSpan.className = 'subtask-item-main';
 
@@ -22,34 +21,61 @@ function createSubtaskListDOM(subtasksData) {
     mainContentSpan.appendChild(typeIcon);
 
     const titleTextSpan = document.createElement('span');
-    titleTextSpan.className = 'subtask-title-text'; // Reutilizamos clase para truncamiento
+    titleTextSpan.className = 'subtask-title-text';
     titleTextSpan.textContent = subtask.title;
-    titleTextSpan.title = subtask.title; // Tooltip para título completo
+    titleTextSpan.title = subtask.title;
     mainContentSpan.appendChild(titleTextSpan);
 
     li.appendChild(mainContentSpan);
 
-    // Contenedor para detalles (estado y avatar - se alineará a la derecha)
     const detailsSpan = document.createElement('span');
     detailsSpan.className = 'subtask-item-details';
 
     const statusSpan = document.createElement('span');
-    statusSpan.className = 'subtask-status'; // Clase para el estado
+    statusSpan.className = 'subtask-status';
     statusSpan.textContent = subtask.status;
     detailsSpan.appendChild(statusSpan);
 
-    if (subtask.avatarUrl) {
+    if (subtask.avatarUrl) { // Si hay una URL de avatar específica
       const avatarImg = document.createElement('img');
       avatarImg.src = subtask.avatarUrl;
       avatarImg.alt = subtask.assigneeName;
       avatarImg.title = subtask.assigneeName;
-      avatarImg.className = 'subtask-avatar'; // Reutilizamos clase
+      avatarImg.className = 'subtask-avatar'; // Usará los estilos de .subtask-avatar
       detailsSpan.appendChild(avatarImg);
-    } else {
-      // Espacio reservado para el avatar si no existe, para mantener la alineación
-      const avatarPlaceholder = document.createElement('span');
-      avatarPlaceholder.className = 'subtask-avatar-placeholder'; // Necesitará estilos
-      detailsSpan.appendChild(avatarPlaceholder);
+    } else { // No hay avatarUrl, usamos el SVG por defecto para "Sin asignar"
+      const defaultAvatarContainer = document.createElement('span');
+      // Aplicamos la clase .subtask-avatar para heredar tamaño y forma,
+      // y una clase específica para el color del SVG.
+      defaultAvatarContainer.className = 'subtask-avatar default-assignee-icon';
+      defaultAvatarContainer.setAttribute('role', 'img');
+      defaultAvatarContainer.setAttribute('aria-label', subtask.assigneeName || 'Sin asignar');
+      defaultAvatarContainer.title = subtask.assigneeName || 'Sin asignar';
+
+      // Crear el SVG y sus componentes
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svgEl = document.createElementNS(svgNS, "svg");
+      svgEl.setAttribute("viewBox", "0 0 24 24");
+      svgEl.setAttribute("role", "presentation");
+      // El tamaño del SVG se controlará por CSS para que llene el contenedor .default-assignee-icon
+
+      const gEl = document.createElementNS(svgNS, "g");
+      gEl.setAttribute("fill", "currentColor"); // El color será heredado del CSS de .default-assignee-icon
+      gEl.setAttribute("fill-rule", "evenodd");
+
+      const pathEl = document.createElementNS(svgNS, "path");
+      pathEl.setAttribute("d", "M6 14c0-1.105.902-2 2.009-2h7.982c1.11 0 2.009.894 2.009 2.006v4.44c0 3.405-12 3.405-12 0z");
+      
+      const circleEl = document.createElementNS(svgNS, "circle");
+      circleEl.setAttribute("cx", "12");
+      circleEl.setAttribute("cy", "7");
+      circleEl.setAttribute("r", "4");
+
+      gEl.appendChild(pathEl);
+      gEl.appendChild(circleEl);
+      svgEl.appendChild(gEl);
+      defaultAvatarContainer.appendChild(svgEl);
+      detailsSpan.appendChild(defaultAvatarContainer);
     }
     li.appendChild(detailsSpan);
     ul.appendChild(li);

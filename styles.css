@@ -67,15 +67,28 @@ div[data-issuefieldid="subtasks"] {
   /* text-overflow: ellipsis; */
 }
 
+/* Estilo base para todos los avatares (sean <img> o el contenedor del SVG) */
 .subtask-avatar {
   width: 20px;
   height: 20px;
-  border-radius: 50%;
-  display: block;
+  border-radius: 50%; /* Hace el contenedor circular */
+  display: inline-flex; /* Usar inline-flex para centrar contenido SVG */
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle; /* Alineación con el texto del estado */
+  background-color: #DFE1E6; /* Color de fondo gris claro para el círculo del avatar por defecto */
+                               /* Para <img>, este background no se verá si la imagen carga */
 }
 
-.subtask-avatar-placeholder { /* Para cuando no hay avatar */
-  width: 20px;  /* Mismo tamaño que el avatar para mantener el layout */
-  height: 20px;
-  display: block; /* O inline-block si se prefiere */
+/* Estilos específicos para el SVG del avatar por defecto */
+.default-assignee-icon {
+  color: #505F79; /* Color del ícono SVG (figura humana). Un gris oscuro. */
+                  /* Jira usa --ds-icon-subtle o similar, este es un valor explícito */
 }
+
+.default-assignee-icon svg {
+  width: 60%;  /* Hace el ícono SVG un poco más pequeño que su contenedor de 20px */
+  height: 60%;
+  display: block; /* Asegura que el SVG no tenga espacio extra debajo */
+}
+
