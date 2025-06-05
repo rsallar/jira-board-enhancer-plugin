@@ -1,6 +1,99 @@
 // Función para crear el elemento DOM de la tabla para una subtarea
 // En content_script.js
 
+/**
+ * Gestiona el estado colapsado/expandido de las columnas del tablero de Jira.
+ */
+const JIRA_COLUMN_STATE_KEY = 'jiraColumnHorizontalCollapseState';
+
+function getColumnCollapseState() {
+  try {
+    const state = localStorage.getItem(JIRA_COLUMN_STATE_KEY);
+    return state ? JSON.parse(state) : {};
+  } catch (e) {
+    console.error('Jira Enhancer: Error reading column state from localStorage', e);
+    return {};
+  }
+}
+
+function setColumnCollapseState(columnTitle, isCollapsed) {
+  const state = getColumnCollapseState();
+  state[columnTitle] = isCollapsed;
+  try {
+    localStorage.setItem(JIRA_COLUMN_STATE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Jira Enhancer: Error saving column state to localStorage', e);
+  }
+}
+
+function initializeHorizontalCollapse() {
+  const columnSelector = 'div[data-component-selector="platform-board-kit.ui.column.draggable-column"]';
+  const columns = document.querySelectorAll(columnSelector);
+  const collapseState = getColumnCollapseState();
+
+  columns.forEach(column => {
+    if (column.dataset.horizontalCollapseInitialized === 'true') {
+      return;
+    }
+
+    const header = column.querySelector('div[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]');
+    const cardList = column.querySelector('ul[data-testid*="fast-virtual-list-wrapper"]');
+    const titleElement = header ? header.querySelector('h2[aria-label]') : null;
+
+    if (!header || !cardList || !titleElement) return;
+
+    const columnTitle = titleElement.getAttribute('aria-label');
+    if (!columnTitle) return;
+
+    // Marcar la lista de tarjetas para poder ocultarla con CSS
+    cardList.classList.add('horizontally-collapsible-card-list');
+
+    // --- Envolver el contenido original de la cabecera para poder ocultarlo ---
+    const headerWrapper = document.createElement('div');
+    headerWrapper.className = 'original-header-content-wrapper';
+    while (header.firstChild) {
+      headerWrapper.appendChild(header.firstChild);
+    }
+    header.appendChild(headerWrapper);
+    
+    // --- Crear el título vertical que se mostrará cuando la columna esté colapsada ---
+    const verticalTitle = document.createElement('div');
+    verticalTitle.className = 'vertical-column-title';
+    verticalTitle.textContent = columnTitle;
+    column.appendChild(verticalTitle); // Lo añadimos al contenedor principal de la columna
+
+    // --- Crear el botón de colapso/expansión ---
+    const btn = document.createElement('button');
+    btn.className = 'horizontal-collapse-btn';
+    btn.setAttribute('aria-label', `Colapsar/Expandir columna ${columnTitle}`);
+    btn.title = 'Colapsar/Expandir';
+    btn.innerHTML = `
+      <svg class="icon-collapse" width="16" height="16" viewBox="0 0 24 24"><path d="M14 17.364l-6.73-5.364 6.73-5.364v10.728z" fill="currentColor"/></svg>
+      <svg class="icon-expand" width="16" height="16" viewBox="0 0 24 24"><path d="M10 17.364v-10.728l6.73 5.364-6.73 5.364z" fill="currentColor"/></svg>
+    `;
+
+    // Insertar el botón en la cabecera (fuera del wrapper)
+    header.prepend(btn);
+
+    // --- Aplicar el estado guardado al cargar ---
+    if (collapseState[columnTitle]) {
+      column.classList.add('is-horizontally-collapsed');
+    }
+
+    // --- Añadir el listener de clic ---
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      const isNowCollapsed = column.classList.toggle('is-horizontally-collapsed');
+      setColumnCollapseState(columnTitle, isNowCollapsed);
+    });
+
+    column.dataset.horizontalCollapseInitialized = 'true';
+  });
+}
+
+
 function createSubtaskListDOM(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
 
@@ -171,18 +264,19 @@ async function processCards(cardElements) {
 // --- CONFIGURACIÓN DEL MUTATIONOBSERVER ---
 const observer = new MutationObserver((mutationsList) => {
   let newCardElements = [];
+  let newColumnsFound = false;
+
   mutationsList.forEach(mutation => {
     if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
       mutation.addedNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          // ¿Es el nodo añadido directamente una tarjeta?
-          if (node.matches('div[data-testid="platform-board-kit.ui.card.card"]')) {
-            newCardElements.push(node);
-          }
-          // ¿El nodo añadido CONTIENE tarjetas? (ej. se añadió una columna entera)
+          if (node.matches('div[data-testid="platform-board-kit.ui.card.card"]')) { newCardElements.push(node); }
           const containedCards = node.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]');
-          if (containedCards.length > 0) {
-            newCardElements.push(...containedCards); // El operador 'spread' (...) añade todos los elementos del array
+          if (containedCards.length > 0) { newCardElements.push(...containedCards); }
+
+          const columnSelector = 'div[data-component-selector="platform-board-kit.ui.column.draggable-column"]';
+          if (node.matches(columnSelector) || node.querySelector(columnSelector)) {
+            newColumnsFound = true;
           }
         }
       });
@@ -190,15 +284,19 @@ const observer = new MutationObserver((mutationsList) => {
   });
 
   if (newCardElements.length > 0) {
-    // Eliminar duplicados si una tarjeta se captura de múltiples maneras
     const uniqueNewCards = [...new Set(newCardElements)];
-    console.log(`Jira Enhancer: MutationObserver detected ${uniqueNewCards.length} new card(s) or cards within new nodes. Processing them.`);
-    processCards(uniqueNewCards); // Procesar solo estas tarjetas nuevas/detectadas
+    processCards(uniqueNewCards);
+  }
+
+  if (newColumnsFound) {
+    console.log('Jira Enhancer: MutationObserver detected new column(s). Initializing horizontal collapse.');
+    initializeHorizontalCollapse();
   }
 });
 
 // Iniciar la observación del contenedor del tablero
-const boardSelector = 'div[data-onboarding-observer-id="board-wrapper"]';
+//const boardSelector = 'div[data-onboarding-observer-id="board-wrapper"]';
+const boardSelector = 'div[data-testid="platform-board-kit.ui.board.scroll.board-scroll"]';
 const boardContainer = document.querySelector(boardSelector);
 
 if (boardContainer) {
@@ -212,11 +310,11 @@ if (boardContainer) {
 
 // --- LLAMADA INICIAL PARA PROCESAR TARJETAS YA PRESENTES AL CARGAR ---
 window.addEventListener('load', () => {
-    console.log('Jira Enhancer: Page loaded, scheduling initial full card processing pass...');
+    console.log('Jira Enhancer: Page loaded, scheduling initial processing...');
     setTimeout(() => {
-        console.log('Jira Enhancer: Executing initial full card processing pass.');
-        processCards(); // Llama sin argumentos para procesar todas las tarjetas existentes
-    }, 3000); // Espera 3 segundos (ajusta si es necesario)
+        processCards(); 
+        initializeHorizontalCollapse(); // Llamamos a la nueva función
+    }, 3000); 
 });
 
 console.log('Jira Enhancer content script loaded (MutationObserver active, new subtask ID logic).');
