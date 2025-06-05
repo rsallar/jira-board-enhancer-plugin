@@ -1,62 +1,60 @@
 // Función para crear el elemento DOM de la tabla para una subtarea
 // En content_script.js
-function createSubtaskTableElement(subtasksData) {
+
+function createSubtaskListDOM(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
 
-  const table = document.createElement('table');
-  table.className = 'subtask-table';
+  const ul = document.createElement('ul');
+  ul.className = 'subtask-list'; // Clase para el UL
 
-  // YA NO CREAMOS EL THEAD (cabecera de la tabla)
-  // const thead = table.createTHead();
-  // const headerRow = thead.insertRow();
-  // ['Título', 'Estado', 'Asignado'].forEach(text => {
-  //   const th = document.createElement('th');
-  //   th.textContent = text;
-  //   headerRow.appendChild(th);
-  // });
-
-  const tbody = table.createTBody();
   subtasksData.forEach(subtask => {
-    const row = tbody.insertRow();
+    const li = document.createElement('li');
+    li.className = 'subtask-item'; // Clase para cada LI
 
-    // Celda Título (con Flexbox para truncamiento junto al icono)
-    const titleCell = row.insertCell();
-    titleCell.className = 'subtask-title-cell'; // Clase para estilizar la celda del título
+    // Contenedor principal para icono y título (se alineará a la izquierda)
+    const mainContentSpan = document.createElement('span');
+    mainContentSpan.className = 'subtask-item-main';
 
     const typeIcon = document.createElement('img');
     typeIcon.src = subtask.issueTypeIconUrl;
     typeIcon.alt = subtask.issueType;
-    typeIcon.className = 'subtask-issuetype-icon'; // Estilos para el icono (ej. margin-right)
-    titleCell.appendChild(typeIcon);
+    typeIcon.className = 'subtask-issuetype-icon';
+    mainContentSpan.appendChild(typeIcon);
 
     const titleTextSpan = document.createElement('span');
-    titleTextSpan.className = 'subtask-title-text'; // Clase para aplicar truncamiento al texto
+    titleTextSpan.className = 'subtask-title-text'; // Reutilizamos clase para truncamiento
     titleTextSpan.textContent = subtask.title;
-    titleTextSpan.title = subtask.title; // Mostrar título completo en hover
-    titleCell.appendChild(titleTextSpan);
+    titleTextSpan.title = subtask.title; // Tooltip para título completo
+    mainContentSpan.appendChild(titleTextSpan);
 
-    // Celda Estado
-    const statusCell = row.insertCell();
-    statusCell.className = 'subtask-status-cell'; // Clase para alinear a la derecha
-    statusCell.textContent = subtask.status;
+    li.appendChild(mainContentSpan);
 
-    // Celda Asignado (solo avatar)
-    const assigneeCell = row.insertCell();
-    assigneeCell.className = 'subtask-assignee-cell'; // Clase para alinear a la derecha
+    // Contenedor para detalles (estado y avatar - se alineará a la derecha)
+    const detailsSpan = document.createElement('span');
+    detailsSpan.className = 'subtask-item-details';
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'subtask-status'; // Clase para el estado
+    statusSpan.textContent = subtask.status;
+    detailsSpan.appendChild(statusSpan);
+
     if (subtask.avatarUrl) {
       const avatarImg = document.createElement('img');
       avatarImg.src = subtask.avatarUrl;
       avatarImg.alt = subtask.assigneeName;
-      avatarImg.title = subtask.assigneeName; // Mostrar nombre en hover
-      avatarImg.className = 'subtask-avatar';
-      assigneeCell.appendChild(avatarImg);
+      avatarImg.title = subtask.assigneeName;
+      avatarImg.className = 'subtask-avatar'; // Reutilizamos clase
+      detailsSpan.appendChild(avatarImg);
     } else {
-      // Si no hay avatar, la celda queda vacía.
-      // Podrías poner un placeholder si lo deseas, ej: assigneeCell.textContent = '—';
+      // Espacio reservado para el avatar si no existe, para mantener la alineación
+      const avatarPlaceholder = document.createElement('span');
+      avatarPlaceholder.className = 'subtask-avatar-placeholder'; // Necesitará estilos
+      detailsSpan.appendChild(avatarPlaceholder);
     }
+    li.appendChild(detailsSpan);
+    ul.appendChild(li);
   });
-
-  return table;
+  return ul;
 }
 
 // Función principal para procesar las tarjetas
@@ -73,7 +71,6 @@ async function processCards(cardElements) {
 
   for (const card of cardsToProcess) {
     if (card.dataset.subtasksProcessed === 'true') {
-      // console.log(`Jira Enhancer: Card ${card.id || '(no id)'} already processed, skipping.`);
       continue;
     }
 
@@ -82,27 +79,19 @@ async function processCards(cardElements) {
     const subtaskIssueKeys = [];
 
     if (subtaskContainer) {
-      // console.log(`Jira Enhancer: Found subtask container in card ${card.id || '(no id)'}. Content: "${subtaskContainer.textContent.trim()}"`);
       const allTextContent = subtaskContainer.textContent;
       const issueKeyRegex = /[A-ZÁÉÍÓÚÑÜ]+-[0-9]+/gi;
       let match;
       while ((match = issueKeyRegex.exec(allTextContent)) !== null) {
         subtaskIssueKeys.push(match[0].toUpperCase());
       }
-      // if (subtaskIssueKeys.length > 0) {
-      //   console.log(`Jira Enhancer: Extracted subtask keys: [${subtaskIssueKeys.join(', ')}] from card ${card.id || '(no id)'}`);
-      // }
     } else {
-      // No se encontró el contenedor de subtareas, esta tarjeta no tiene subtareas de la forma esperada.
-      // Marcamos como procesada para no volver a chequearla si es parte de un full scan.
-      // card.dataset.subtasksProcessed = 'true'; // Opcional: si quieres evitar incluso el chequeo del selector en futuros full scans.
-      continue; // Pasar a la siguiente tarjeta si no hay contenedor
+      continue; 
     }
 
     if (subtaskIssueKeys.length > 0) {
       const subtaskPromises = [];
       subtaskIssueKeys.forEach(issueKey => {
-        // console.log(`Jira Enhancer: Preparing to fetch details for subtask ID: ${issueKey} from card ${card.id || '(no id)'}`);
         subtaskPromises.push(
           new Promise((resolve) => {
             chrome.runtime.sendMessage({ type: "GET_SUBTASK_DETAILS", issueKey: issueKey }, (response) => {
@@ -125,29 +114,32 @@ async function processCards(cardElements) {
       const subtasksData = (await Promise.all(subtaskPromises)).filter(Boolean);
 
       if (subtasksData.length > 0) {
-        // console.log(`Jira Enhancer: Successfully fetched data for ${subtasksData.length} subtasks of card ${card.id || '(no id)'}. Creating table.`);
-        const tableElement = createSubtaskTableElement(subtasksData);
+        const listElement = createSubtaskListDOM(subtasksData); // Usamos la nueva función
 
-        if (tableElement && subtaskContainer) {
-          subtaskContainer.innerHTML = '';
-          subtaskContainer.appendChild(tableElement);
-          // console.log(`Jira Enhancer: Subtask table injected into subtask container for card ${card.id || '(no id)'}.`);
+        if (listElement && subtaskContainer) {
+          // Decidimos que el subtaskContainer (el div con data-issuefieldid="subtasks")
+          // contendrá directamente nuestra lista UL.
+          // Mantenemos sus estilos originales, pero limpiamos su contenido y añadimos la lista.
+          // Si el div original `subtaskContainer` tenía un padding/borde que queremos eliminar
+          // para esta nueva lista, podríamos añadir una clase específica a subtaskContainer
+          // cuando lo modificamos, o envolver listElement en otro div.
+          // Por ahora, lo más simple:
+          subtaskContainer.innerHTML = ''; // Limpiar IDs originales
+          subtaskContainer.appendChild(listElement); // Añadir la nueva lista UL
+          
+          // Opcional: Añadir una clase al contenedor para indicar que ha sido modificado
+          // y para aplicar estilos específicos si el div[data-issuefieldid="subtasks"]
+          // necesita diferentes estilos cuando contiene nuestra lista.
+          // subtaskContainer.classList.add('custom-subtasks-rendered');
         }
         card.dataset.subtasksProcessed = 'true';
       } else {
-        // console.log(`Jira Enhancer: No valid subtask data obtained for card ${card.id || '(no id)'} after fetching. No table will be added.`);
-        // Si se encontraron issue keys pero no se obtuvieron datos, igual marcamos como procesado para no reintentar.
-        card.dataset.subtasksProcessed = 'true';
+        card.dataset.subtasksProcessed = 'true'; 
       }
     } else if (subtaskContainer) {
-        // El contenedor existía pero no se extrajeron IDs (ej. estaba vacío o con texto no parseable)
-        // Marcamos como procesada para no volver a analizar este contenedor vacío.
-        // console.log(`Jira Enhancer: Subtask container in card ${card.id || '(no id)'} had no parsable issue keys.`);
         card.dataset.subtasksProcessed = 'true';
     }
-    // Si subtaskContainer no existía, ya se hizo 'continue'.
   }
-  // console.log("Jira Enhancer: Finished processing pass.");
 }
 
 // --- CONFIGURACIÓN DEL MUTATIONOBSERVER ---
