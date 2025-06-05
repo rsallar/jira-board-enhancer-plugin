@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Jira Sub-task Enhancer",
+  "version": "0.1.0",
+  "description": "Displays sub-task details in a table on Jira cards.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://paradigma.atlassian.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.atlassian.net/secure/RapidBoard.jspa*", 
+        "https://*.atlassian.net/jira/software/projects/*/boards/*", 
+        "https://paradigma.atlassian.net/jira/software/*"
+
+      ],
+      "js": ["content_script.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}

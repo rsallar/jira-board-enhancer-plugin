@@ -1,0 +1,47 @@
+.custom-subtask-table-container {
+  margin-top: 8px;
+  border-top: 1px solid #dfe1e6; /* Similar a la estética de Jira */
+  padding-top: 8px;
+}
+
+.subtask-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px; /* Más pequeño para encajar en la tarjeta */
+}
+
+.subtask-table th,
+.subtask-table td {
+  text-align: left;
+  padding: 4px;
+  border-bottom: 1px solid #f0f0f0; /* Líneas sutiles entre filas */
+}
+
+.subtask-table th {
+  font-weight: 600; /* Un poco más de énfasis para cabeceras */
+  color: #5e6c84; /* Color de texto secundario de Jira */
+}
+
+.subtask-avatar {
+  width: 16px; /* Tamaño pequeño para el avatar */
+  height: 16px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.subtask-issuetype-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.subtask-assignee-name {
+    vertical-align: middle;
+}
+
+/* Ocultar el listado original de subtareas si es que tenía una clase específica */
+/* .original-subtask-list-class {
+  display: none !important;
+} */
