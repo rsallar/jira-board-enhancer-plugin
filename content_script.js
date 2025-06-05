@@ -1,48 +1,59 @@
 // Función para crear el elemento DOM de la tabla para una subtarea
+// En content_script.js
 function createSubtaskTableElement(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
 
   const table = document.createElement('table');
-  table.className = 'subtask-table'; // Asegúrate de tener estilos CSS para esta clase
+  table.className = 'subtask-table';
 
-  const thead = table.createTHead();
-  const headerRow = thead.insertRow();
-  ['Título', 'Estado', 'Asignado'].forEach(text => {
-    const th = document.createElement('th');
-    th.textContent = text;
-    headerRow.appendChild(th);
-  });
+  // YA NO CREAMOS EL THEAD (cabecera de la tabla)
+  // const thead = table.createTHead();
+  // const headerRow = thead.insertRow();
+  // ['Título', 'Estado', 'Asignado'].forEach(text => {
+  //   const th = document.createElement('th');
+  //   th.textContent = text;
+  //   headerRow.appendChild(th);
+  // });
 
   const tbody = table.createTBody();
   subtasksData.forEach(subtask => {
     const row = tbody.insertRow();
 
+    // Celda Título (con Flexbox para truncamiento junto al icono)
     const titleCell = row.insertCell();
+    titleCell.className = 'subtask-title-cell'; // Clase para estilizar la celda del título
+
     const typeIcon = document.createElement('img');
     typeIcon.src = subtask.issueTypeIconUrl;
     typeIcon.alt = subtask.issueType;
-    typeIcon.className = 'subtask-issuetype-icon';
+    typeIcon.className = 'subtask-issuetype-icon'; // Estilos para el icono (ej. margin-right)
     titleCell.appendChild(typeIcon);
-    titleCell.appendChild(document.createTextNode(` ${subtask.title}`));
 
-    row.insertCell().textContent = subtask.status;
+    const titleTextSpan = document.createElement('span');
+    titleTextSpan.className = 'subtask-title-text'; // Clase para aplicar truncamiento al texto
+    titleTextSpan.textContent = subtask.title;
+    titleTextSpan.title = subtask.title; // Mostrar título completo en hover
+    titleCell.appendChild(titleTextSpan);
 
-     const assigneeCell = row.insertCell();
+    // Celda Estado
+    const statusCell = row.insertCell();
+    statusCell.className = 'subtask-status-cell'; // Clase para alinear a la derecha
+    statusCell.textContent = subtask.status;
+
+    // Celda Asignado (solo avatar)
+    const assigneeCell = row.insertCell();
+    assigneeCell.className = 'subtask-assignee-cell'; // Clase para alinear a la derecha
     if (subtask.avatarUrl) {
       const avatarImg = document.createElement('img');
       avatarImg.src = subtask.avatarUrl;
-      avatarImg.alt = subtask.assigneeName;    // Importante para accesibilidad
-      avatarImg.title = subtask.assigneeName;  // Añade tooltip con el nombre al pasar el ratón
+      avatarImg.alt = subtask.assigneeName;
+      avatarImg.title = subtask.assigneeName; // Mostrar nombre en hover
       avatarImg.className = 'subtask-avatar';
       assigneeCell.appendChild(avatarImg);
     } else {
-      // Si no hay avatarUrl, la celda quedará vacía.
-      // Si quisieras mostrar "Sin asignar" o un ícono para casos sin avatar:
-       if (subtask.assigneeName === 'Sin asignar') {
-         assigneeCell.textContent = '—'; // O un ícono de "sin asignar"
-       }
+      // Si no hay avatar, la celda queda vacía.
+      // Podrías poner un placeholder si lo deseas, ej: assigneeCell.textContent = '—';
     }
-    
   });
 
   return table;

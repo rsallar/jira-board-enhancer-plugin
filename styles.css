@@ -1,47 +1,77 @@
+/* style.css */
+
 .custom-subtask-table-container {
   margin-top: 8px;
-  border-top: 1px solid #dfe1e6; /* Similar a la estética de Jira */
+  border-top: 1px solid #dfe1e6;
   padding-top: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .subtask-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px; /* Más pequeño para encajar en la tarjeta */
+  font-size: 12px;
+  table-layout: fixed;
+  background-color: #FFFFFF; /* Fondo blanco para la tabla por si acaso */
 }
 
-.subtask-table th,
 .subtask-table td {
-  text-align: left;
-  padding: 4px;
-  border-bottom: 1px solid #f0f0f0; /* Líneas sutiles entre filas */
-}
-
-.subtask-table th {
-  font-weight: 600; /* Un poco más de énfasis para cabeceras */
-  color: #5e6c84; /* Color de texto secundario de Jira */
-}
-
-.subtask-avatar {
-  width: 16px; /* Tamaño pequeño para el avatar */
-  height: 16px;
-  border-radius: 50%;
+  padding: 4px 3px; /* Padding consistente */
   vertical-align: middle;
-  margin-right: 4px;
+  border-bottom: 1px solid #DFE1E6; /* Color de borde común de Jira */
+  line-height: 1.5; /* CLAVE: Asegura una altura de línea mínima para todas las celdas */
+                      /* Puedes ajustar este valor (ej. 1.4, 1.6 o un valor en px como 20px) */
+  /* background-color: inherit;  /* Para que las celdas usen el fondo de la tabla */
+                                /* Generalmente no es necesario si la tabla ya tiene fondo blanco */
+}
+
+.subtask-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Celda del Título */
+.subtask-title-cell {
+  display: flex;
+  align-items: center;
+  text-align: left;
 }
 
 .subtask-issuetype-icon {
   width: 16px;
   height: 16px;
-  vertical-align: middle;
   margin-right: 4px;
+  flex-shrink: 0;
 }
 
-.subtask-assignee-name {
-    vertical-align: middle;
+.subtask-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  min-width: 0;
 }
 
-/* Ocultar el listado original de subtareas si es que tenía una clase específica */
-/* .original-subtask-list-class {
-  display: none !important;
-} */
+/* Celda de Estado */
+.subtask-status-cell {
+  text-align: right;
+  white-space: nowrap;
+  width: 65px; /* Ajusta según sea necesario */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Celda del Asignado (Avatar) */
+.subtask-assignee-cell {
+  text-align: center;
+  width: 26px; /* Para un avatar de 20px y 3px de padding a cada lado */
+}
+
+.subtask-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto;
+}
