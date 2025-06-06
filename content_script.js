@@ -1,15 +1,10 @@
 /**
  * ==============================================================================
- * JIRA SUBTASK ENHANCER
+ * JIRA SUBTASK & COLUMN ENHANCER (v8 - Versión Completa y Corregida)
  * ==============================================================================
- * Funcionalidades:
- * 1. Reemplaza los IDs de subtareas por una lista detallada (título, estado, avatar).
- * 2. Permite colapsar/expandir horizontalmente las columnas del tablero.
- * 3. Guarda el estado de las columnas colapsadas.
  */
 
 // --- SECCIÓN 1: RENDERIZADO DE SUBTAREAS ---
-
 function createSubtaskListDOM(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
   const ul = document.createElement('ul');
@@ -24,11 +19,15 @@ function createSubtaskListDOM(subtasksData) {
     typeIcon.alt = subtask.issueType;
     typeIcon.className = 'subtask-issuetype-icon';
     mainContentSpan.appendChild(typeIcon);
-    const titleTextSpan = document.createElement('span');
-    titleTextSpan.className = 'subtask-title-text';
-    titleTextSpan.textContent = subtask.title;
-    titleTextSpan.title = subtask.title;
-    mainContentSpan.appendChild(titleTextSpan);
+    const titleLink = document.createElement('a');
+    titleLink.className = 'subtask-title-link';
+    titleLink.textContent = subtask.title;
+    titleLink.title = subtask.title;
+    titleLink.href = subtask.url;
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener noreferrer';
+    titleLink.addEventListener('click', (e) => e.stopPropagation());
+    mainContentSpan.appendChild(titleLink);
     li.appendChild(mainContentSpan);
     const detailsSpan = document.createElement('span');
     detailsSpan.className = 'subtask-item-details';
@@ -75,198 +74,181 @@ function createSubtaskListDOM(subtasksData) {
 }
 
 async function processCards(cardElements) {
-  const cardsToProcess = cardElements || document.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]');
-  for (const card of cardsToProcess) {
-    if (card.dataset.subtasksProcessed === 'true') continue;
-    const subtaskContainerSelector = 'div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]';
-    const subtaskContainer = card.querySelector(subtaskContainerSelector);
-    if (!subtaskContainer) {
-      card.dataset.subtasksProcessed = 'true';
-      continue;
-    }
-    const subtaskIssueKeys = (subtaskContainer.textContent.match(/[A-ZÁÉÍÓÚÑÜ]+-[0-9]+/gi) || []).map(k => k.toUpperCase());
-    if (subtaskIssueKeys.length > 0) {
-      const subtaskPromises = subtaskIssueKeys.map(issueKey => new Promise(resolve => {
-        chrome.runtime.sendMessage({ type: "GET_SUBTASK_DETAILS", issueKey }, response => {
-          if (chrome.runtime.lastError) {
-            console.error(`Jira Enhancer: sendMessage error for ${issueKey}: ${chrome.runtime.lastError.message}`);
-            resolve(null);
-          } else if (response && response.success) {
-            resolve(response.data);
-          } else {
-            resolve(null);
-          }
-        });
-      }));
-      const subtasksData = (await Promise.all(subtaskPromises)).filter(Boolean);
-      if (subtasksData.length > 0) {
-        const listElement = createSubtaskListDOM(subtasksData);
-        if (listElement) {
-          subtaskContainer.innerHTML = '';
-          subtaskContainer.appendChild(listElement);
+    const cardsToProcess = cardElements || document.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]');
+    for (const card of cardsToProcess) {
+        if (card.dataset.subtasksProcessed === 'true') continue;
+        const subtaskContainerSelector = 'div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]';
+        const subtaskContainer = card.querySelector(subtaskContainerSelector);
+        if (!subtaskContainer) {
+            card.dataset.subtasksProcessed = 'true';
+            continue;
         }
-      }
+        const subtaskIssueKeys = (subtaskContainer.textContent.match(/[A-ZÁÉÍÓÚÑÜ]+-[0-9]+/gi) || []).map(k => k.toUpperCase());
+        if (subtaskIssueKeys.length > 0) {
+            const subtaskPromises = subtaskIssueKeys.map(issueKey => new Promise(resolve => {
+                chrome.runtime.sendMessage({ type: "GET_SUBTASK_DETAILS", issueKey }, response => {
+                    if (chrome.runtime.lastError) { resolve(null); return; }
+                    resolve(response && response.success ? response.data : null);
+                });
+            }));
+            const subtasksData = (await Promise.all(subtaskPromises)).filter(Boolean);
+            if (subtasksData.length > 0) {
+                const listElement = createSubtaskListDOM(subtasksData);
+                if (listElement) {
+                    subtaskContainer.innerHTML = '';
+                    subtaskContainer.appendChild(listElement);
+                }
+            }
+        }
+        card.dataset.subtasksProcessed = 'true';
     }
-    card.dataset.subtasksProcessed = 'true';
-  }
 }
 
-// --- SECCIÓN 2: LÓGICA DE COLUMNAS COLAPSABLES HORIZONTALMENTE ---
-
-const JIRA_COLUMN_STATE_KEY = 'jiraColumnHorizontalCollapseState';
-
-function getColumnCollapseState() {
-  try {
-    const state = localStorage.getItem(JIRA_COLUMN_STATE_KEY);
-    return state ? JSON.parse(state) : {};
-  } catch (e) {
-    console.error('Jira Enhancer: Error reading column state from localStorage', e);
-    return {};
-  }
-}
-
-function setColumnCollapseState(columnTitle, isCollapsed) {
-  const state = getColumnCollapseState();
-  state[columnTitle] = isCollapsed;
-  try {
-    localStorage.setItem(JIRA_COLUMN_STATE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error('Jira Enhancer: Error saving column state to localStorage', e);
-  }
-}
-
-function updateGridLayout() {
-  const firstColumn = document.querySelector('div[data-component-selector="platform-board-kit.ui.column.draggable-column"]');
-  if (!firstColumn) return;
-  const gridParent = firstColumn.parentElement;
-  if (!gridParent) return;
-
-  const columns = Array.from(gridParent.children);
-  let templateColumns = [];
-
-  for (const column of columns) {
-    if (column.matches('div[data-component-selector="platform-board-kit.ui.column.draggable-column"]')) {
-      if (column.classList.contains('is-horizontally-collapsed')) {
-        templateColumns.push('40px');
-      } else {
-        templateColumns.push('minmax(250px, 1fr)');
-      }
-    }
-  }
-
-  if (templateColumns.length > 0) {
-    gridParent.style.gridTemplateColumns = templateColumns.join(' ');
-    gridParent.style.gridAutoColumns = ''; // Anular posible estilo por defecto de Jira
-  }
-}
-
-function initializeHorizontalCollapse() {
-  const columnSelector = 'div[data-component-selector="platform-board-kit.ui.column.draggable-column"]';
-  const columns = document.querySelectorAll(columnSelector);
-  const collapseState = getColumnCollapseState();
-
-  columns.forEach(column => {
-    if (column.dataset.horizontalCollapseInitialized === 'true') {
-      return;
-    }
-
-    const header = column.querySelector('div[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]');
-    const cardList = column.querySelector('ul[data-testid*="fast-virtual-list-wrapper"]'); // La variable se declara como cardList (con L mayúscula)
-    const titleElement = header ? header.querySelector('h2[aria-label]') : null;
-
-    if (!header || !cardList || !titleElement) {
-      return; 
-    }
+/**
+ * Actualiza el layout de un contenedor grid.
+ * @param {HTMLElement} gridParent El elemento que tiene display:grid.
+ */
+function updateGridLayout(gridParent, columns) {
+    if (!gridParent) return;
     
-
-    cardList.classList.add('horizontally-collapsible-card-list');
-
-    const columnTitle = titleElement.getAttribute('aria-label');
-    if (!columnTitle) return;
-
-    // Envolver el contenido original de la cabecera para poder ocultarlo
-    const headerWrapper = document.createElement('div');
-    headerWrapper.className = 'original-header-content-wrapper';
-    while (header.firstChild) {
-      headerWrapper.appendChild(header.firstChild);
+    if(!hideMode){
+        gridParent.style.gridTemplateColumns = "minmax(250px, 1fr)".repeat(columns.length);
+    }else{
+        gridParent.style.gridTemplateColumns = "40px "+ "minmax(250px, 1fr) ".repeat(columns.length-1);
     }
-    header.appendChild(headerWrapper);
-    
-    // Crear el título vertical que se mostrará cuando la columna esté colapsada
-    const verticalTitle = document.createElement('div');
-    verticalTitle.className = 'vertical-column-title';
-    verticalTitle.textContent = columnTitle;
-    column.appendChild(verticalTitle);
 
-    // Crear el botón de colapso/expansión
+    const firstHeader = document.querySelector(headerSelector);
+    const collapseBtn = document.querySelector('[id=collapseBtn]');
+    if (hideMode){ 
+        firstHeader.parentElement.parentElement.parentElement.parentElement.style.gridTemplateColumns = "minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";   
+        collapseBtn.classList.remove("btnCollapsed");
+        collapseBtn.parentElement.firstChild.classList.remove("hide");
+    }else{
+        firstHeader.parentElement.parentElement.parentElement.parentElement.style.gridTemplateColumns = "40px minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
+        collapseBtn.classList.add("btnCollapsed");
+        collapseBtn.parentElement.firstChild.classList.add("hide");
+    }
+
+}
+
+const headerSelector = '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]'; 
+const headerTextSelector = '[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-title"]';
+const columnWrapperSelector = '[data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"]';
+const swimlaneColumnsContainerSelector = '[data-testid="platform-board-kit.ui.swimlane.swimlane-columns"]';
+let hideMode = false;
+
+/**
+ * Función principal que inicializa la funcionalidad de colapso.
+ */
+function initCollapsibleFirstColumn() {
+
+    // Encontrar TODAS las primeras columnas de cada swimlane
+    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
+    console.log("filas:", swimlaneContainers.length);
+    
+    const columns = Array.from(swimlaneContainers).map(container =>
+        container.querySelector(columnWrapperSelector) // .querySelector siempre devuelve el primero que encuentra
+    ).filter(Boolean); // Filtra cualquier resultado nulo si un swimlane estuviera vacío
+
+    const firstHeaderText = document.querySelector(headerTextSelector);
+    if (!firstHeaderText) {
+        // console.log("Jira Collapser: No se encontró la cabecera principal.");
+        return;
+    }
+     
     const btn = document.createElement('button');
+    btn.id = 'collapseBtn'
     btn.className = 'horizontal-collapse-btn';
-    btn.setAttribute('aria-label', `Colapsar/Expandir columna ${columnTitle}`);
     btn.title = 'Colapsar/Expandir';
     btn.innerHTML = `<svg class="icon-collapse" viewBox="0 0 24 24"><path d="M14 17.364l-6.73-5.364 6.73-5.364v10.728z" fill="currentColor"/></svg><svg class="icon-expand" viewBox="0 0 24 24"><path d="M10 17.364v-10.728l6.73 5.364-6.73 5.364z" fill="currentColor"/></svg>`;
     
-    // Insertar el botón en la cabecera (fuera del wrapper)
-    //header.prepend(btn);
-    //header.appendChild(btn);
-    column.appendChild(btn);
+    const collapseBtn = document.querySelector('[id=collapseBtn]');
 
-    // Aplicar el estado guardado al cargar
-    if (collapseState[columnTitle]) {
-      column.classList.add('is-horizontally-collapsed');
+    if(!collapseBtn){
+        // Añadir el botón al lado del texto del título para un layout correcto
+        if (firstHeaderText.parentElement) {
+            firstHeaderText.parentElement.style.display = 'flex';
+            firstHeaderText.parentElement.style.alignItems = 'center';
+            firstHeaderText.parentElement.appendChild(btn);
+        }
     }
+    const columnTitle = firstHeaderText.firstChild.textContent || 'Columna';
 
-    // Añadir el listener de clic
+    // 6. Añadir el Listener de Clic
     btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      
-      const isNowCollapsed = column.classList.toggle('is-horizontally-collapsed');
-      setColumnCollapseState(columnTitle, isNowCollapsed);
-      updateGridLayout();
+        e.stopPropagation();
+        e.preventDefault();
+       hideShow();
+       
     });
-
-    column.dataset.horizontalCollapseInitialized = 'true';
-  });
-
-  updateGridLayout(); // Llamada inicial para establecer el layout correcto
+    
+    hideShowColumns(columns, columnTitle);
+    // Actualizar el layout de todos los grids padres afectados
+    const allGridParents = new Set(columns.map(c => c.parentElement));
+    allGridParents.forEach(updateGridLayout);
+  
+    console.log("Jira Collapser: Botón añadido a la primera columna.");
 }
 
+function hideShow(){
+    hideMode = !hideMode;
+}
 
-// --- SECCIÓN 3: INICIALIZACIÓN Y MUTATION OBSERVER ---
+function hideShowColumns(columns, columnTitle){
+        
+    const verticalTitle = document.createElement('div');
+    verticalTitle.className = 'vertical-column-title';
+    verticalTitle.textContent = columnTitle;
+    verticalTitle.title = columnTitle;
 
-const observer = new MutationObserver((mutationsList) => {
-  let newCardElements = [];
-  let newColumnsFound = false;
-  mutationsList.forEach(mutation => {
-    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-      mutation.addedNodes.forEach(node => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const cardSelector = 'div[data-testid="platform-board-kit.ui.card.card"]';
-          if (node.matches(cardSelector)) { newCardElements.push(node); }
-          const containedCards = node.querySelectorAll(cardSelector);
-          if (containedCards.length > 0) { newCardElements.push(...containedCards); }
-          const columnSelector = 'div[data-component-selector="platform-board-kit.ui.column.draggable-column"]';
-          if (node.matches(columnSelector) || node.querySelector(columnSelector)) {
-            newColumnsFound = true;
-          }
+    columns.forEach(function(column){
+        if(column.children.length!=2){
+            column.appendChild(verticalTitle);
         }
-      });
-    }
-  });
+        column.dataset.collapseInitialized = 'true';
 
-  if (newCardElements.length > 0) {
-    processCards([...new Set(newCardElements)]);
-  }
+        // const isNowCollapsed = !column.classList.contains('is-collapsed');
+        column.classList.toggle('is-collapsed', hideMode);
+        
+        if(!hideMode){
+            column.firstChild.firstChild.classList.add("hide");
+        }else{
+            column.firstChild.firstChild.classList.remove("hide");
+        }   
+    }); 
 
-  if (newColumnsFound) {
-    initializeHorizontalCollapse();
-  }
+    
+    
+    const allGridParents = new Set(columns.map(c => c.parentElement));
+    allGridParents.forEach(updateGridLayout);
+}
+
+// --- SECCIÓN 3: INICIALIZACIÓN Y OBSERVER ---
+const debouncedInit = debounce(() => {
+    processCards();
+    initCollapsibleFirstColumn();
+}, 750); 
+
+const observer = new MutationObserver(() => {
+    debouncedInit();
 });
 
-const boardSelector = 'div[data-testid="platform-board-kit.ui.board.scroll.board-scroll"]';
-const boardContainer = document.querySelector(boardSelector);
-if(boardContainer) {
-    observer.observe(boardContainer, { childList: true, subtree: true });
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+const boardAreaSelector = 'div[data-testid="software-board.board-area"]';
+const boardAreaContainer = document.querySelector(boardAreaSelector);
+if (boardAreaContainer) {
+    observer.observe(boardAreaContainer, { childList: true, subtree: true });
 } else {
     observer.observe(document.body, { childList: true, subtree: true });
 }
@@ -274,8 +256,8 @@ if(boardContainer) {
 window.addEventListener('load', () => {
     setTimeout(() => {
         processCards();
-        initializeHorizontalCollapse();
+        initCollapsibleFirstColumn();
     }, 3000); 
 });
 
-console.log('Jira Enhancer loaded with all features.');
+console.log('Jira Enhancer loaded. Final version with corrected functions.');
