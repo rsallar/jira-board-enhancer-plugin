@@ -1,10 +1,6 @@
-
+/* --- Estilos para la Lista de Subtareas --- */
 div[data-issuefieldid="subtasks"] {
-  margin-top: 6px; /* Un poco menos de margen que antes */
-  /* Eliminar el borde superior si la lista de subtareas es el único contenido aquí
-     o si prefieres una apariencia más integrada. */
-  /* border-top: 1px solid #dfe1e6; */
-  /* padding-top: 6px; */
+  margin-top: 6px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -16,98 +12,83 @@ div[data-issuefieldid="subtasks"] {
   font-size: 12px;
 }
 
-.subtask-item { /* Cada <li> es un item/fila */
-  display: flex;             /* Usa Flexbox para alinear elementos en la fila */
-  justify-content: space-between; /* Empuja el contenido principal a la izq. y detalles a la der. */
-  align-items: center;       /* Centra verticalmente los elementos */
-  padding: 3px 0;            /* Padding vertical para cada item, sin padding horizontal */
-  border-bottom: 1px solid #EEE; /* Línea divisoria más sutil */
-  line-height: 1.4;          /* Altura de línea consistente */
-  min-height: 22px;          /* Altura mínima para asegurar que incluso vacío se vea bien */
+.subtask-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid #EEE;
+  line-height: 1.4;
+  min-height: 22px;
 }
 
 
-/* Contenedor para icono y título */
 .subtask-item-main {
   display: flex;
   align-items: center;
-  flex-grow: 1;              /* Permite que esta parte crezca y ocupe espacio */
-  min-width: 0;              /* CRUCIAL para que el truncamiento del texto hijo funcione en flex */
-  margin-right: 8px;         /* Espacio antes de los detalles (estado/avatar) */
+  flex-grow: 1;
+  min-width: 0;
+  margin-right: 8px;
 }
 
 .subtask-issuetype-icon {
   width: 16px;
   height: 16px;
-  margin-right: 5px;       /* Espacio entre icono y texto del título */
-  flex-shrink: 0;          /* Evita que el icono se encoja */
+  margin-right: 5px;
+  flex-shrink: 0;
 }
 
-.subtask-title-text {      /* El span del texto del título */
+.subtask-title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* flex-grow: 1; /* No es necesario aquí si .subtask-item-main ya lo tiene y min-width:0 */
 }
 
-/* Contenedor para estado y avatar */
 .subtask-item-details {
   display: flex;
   align-items: center;
-  flex-shrink: 0;          /* Evita que esta sección se encoja */
+  flex-shrink: 0;
 }
 
 .subtask-status {
   white-space: nowrap;
-  margin-right: 8px;       /* Espacio entre estado y avatar */
-  color: #5E6C84;        /* Un color gris para el estado, similar a Jira */
-  /* Opcional: si quieres truncar estados largos */
-  /* max-width: 70px; */
-  /* overflow: hidden; */
-  /* text-overflow: ellipsis; */
+  margin-right: 8px;
+  color: #5E6C84;
 }
 
-/* Estilo base para todos los avatares (sean <img> o el contenedor del SVG) */
 .subtask-avatar {
   width: 20px;
   height: 20px;
-  border-radius: 50%; /* Hace el contenedor circular */
-  display: inline-flex; /* Usar inline-flex para centrar contenido SVG */
+  border-radius: 50%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  vertical-align: middle; /* Alineación con el texto del estado */
-  background-color: #DFE1E6; /* Color de fondo gris claro para el círculo del avatar por defecto */
-                               /* Para <img>, este background no se verá si la imagen carga */
+  vertical-align: middle;
+  background-color: #DFE1E6;
 }
 
-/* Estilos específicos para el SVG del avatar por defecto */
 .default-assignee-icon {
-  color: #505F79; /* Color del ícono SVG (figura humana). Un gris oscuro. */
-                  /* Jira usa --ds-icon-subtle o similar, este es un valor explícito */
+  color: #505F79;
 }
 
 .default-assignee-icon svg {
-  width: 60%;  /* Hace el ícono SVG un poco más pequeño que su contenedor de 20px */
+  width: 60%;
   height: 60%;
-  display: block; /* Asegura que el SVG no tenga espacio extra debajo */
+  display: block;
 }
 
-/* --- Estilos para Colapso Horizontal de Columnas --- */
 
+/* --- Estilos para Colapso Horizontal de Columnas (con animación) --- */
 
+/* Aseguramos que la cabecera sea un contexto de posicionamiento */
+div[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"] {
+  position: relative; 
+}
 
-/* Contenedor principal de la columna (div[data-component-selector="..."]) */
+/* Contenedor principal de la columna */
 div[data-component-selector="platform-board-kit.ui.column.draggable-column"] {
-  transition: width 0.25s ease-out, min-width 0.25s ease-out; /* Animación suave */
-  position: relative; /* Necesario para posicionar el título vertical */
-  overflow: hidden; /* Oculta contenido que se desborda durante la animación */
-}
-
-div[data-component-selector="platform-board-kit.ui.column.draggable-column"]:not(.is-horizontally-collapsed) {
-  flex-grow: 1;
-  /* Opcional: define un ancho base/mínimo si es necesario. 
-     Esto evita que las columnas se vuelvan demasiado estrechas si hay muchas en la pantalla. */
-  min-width: 250px; 
+  position: relative;
+  overflow: hidden;
 }
 
 /* El botón para colapsar/expandir */
@@ -122,54 +103,61 @@ div[data-component-selector="platform-board-kit.ui.column.draggable-column"]:not
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  /* Posicionamiento absoluto respecto a la columna principal */
   position: absolute;
-  top: 10px; /* Ajusta la posición vertical */
-  left: 4px;  /* Ajusta la posición horizontal */
+  top: 10px; /* Distancia desde la parte superior de la columna */
+  right: 5px;  /* Distancia desde la parte derecha de la columna */
   z-index: 10;
 }
-.horizontal-collapse-btn:hover {
-  background-color: rgba(9, 30, 66, 0.13); /* Hover de Jira un poco más oscuro */
-}
 
-.horizontal-collapse-btn .icon-expand { display: none; } /* Ocultar icono de expandir por defecto */
-.horizontal-collapse-btn .icon-collapse { display: block; } /* Mostrar icono de colapsar por defecto */
+
+.horizontal-collapse-btn:hover { background-color: rgba(9, 30, 66, 0.13); }
+.horizontal-collapse-btn svg { width: 16px; height: 16px; color: #5E6C84; fill: currentColor; }
+.horizontal-collapse-btn .icon-expand { display: none; }
+.horizontal-collapse-btn .icon-collapse { display: block; }
 
 /* El título vertical que se muestra cuando está colapsado */
 .vertical-column-title {
-  display: none; /* Oculto por defecto */
-  position: absolute;
-  top: 50px; /* Espacio desde la parte superior */
-  left: 12px; /* Centrado en los 40px de ancho */
-  transform: translateX(-50%);
-  writing-mode: vertical-rl; /* Escribe el texto en vertical */
-  text-orientation: mixed;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
-  color: #42526E;
-  max-height: calc(100% - 60px); /* Evita que el título se salga */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: block; /* Siempre está en el DOM, controlamos su visibilidad con opacidad */
+  opacity: 0;     /* Oculto por defecto */
+  visibility: hidden;
+  position: absolute; top: 50px; left: 12px;
+  writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap;
+  font-size: 14px; font-weight: 500; color: #42526E;
+  max-height: calc(100% - 60px); overflow: hidden; text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+/* Contenido original de la columna (cabecera y tarjetas) */
+.original-header-content-wrapper,
+.horizontally-collapsible-card-list {
+  /* Transición suave para desvanecerse */
+  opacity: 1;
+  visibility: visible;
 }
 
 
 /* --- ESTADO COLAPSADO --- */
 
 .is-horizontally-collapsed {
-  width: 40px !important;       /* Ancho fijo cuando está colapsado */
-  min-width: 40px !important;    /* Forzar el ancho mínimo */
+  width: 40px !important;
+  min-width: 40px !important;
   cursor: pointer;
 }
 
-/* Ocultar el contenido original cuando está colapsado */
+/* Ocultar el contenido original con una animación de desvanecimiento */
 .is-horizontally-collapsed .original-header-content-wrapper,
 .is-horizontally-collapsed .horizontally-collapsible-card-list {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  /* Transición más rápida al ocultar */
 }
 
 /* Mostrar el título vertical cuando está colapsado */
 .is-horizontally-collapsed .vertical-column-title {
-  display: block;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Cambiar el icono del botón cuando está colapsado */
