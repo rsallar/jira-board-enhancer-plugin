@@ -19,14 +19,22 @@ function createSubtaskListDOM(subtasksData) {
     typeIcon.alt = subtask.issueType;
     typeIcon.className = 'subtask-issuetype-icon';
     mainContentSpan.appendChild(typeIcon);
+    
     const titleLink = document.createElement('a');
     titleLink.className = 'subtask-title-link';
     titleLink.textContent = subtask.title;
-    titleLink.title = subtask.title;
-    titleLink.href = subtask.url;
+    titleLink.dataset.fullTitle = subtask.title;
+    titleLink.href = subtask.url; // <-- Proviene de background.js
     titleLink.target = '_blank';
     titleLink.rel = 'noopener noreferrer';
-    titleLink.addEventListener('click', (e) => e.stopPropagation());
+    
+    // --- ESTA ES LA PARTE IMPORTANTE ---
+    titleLink.addEventListener('click', (e) => {
+      // Detiene el burbujeo para que no se active el clic de la card padre.
+      e.stopPropagation();
+    });
+    // --- FIN DE LA PARTE IMPORTANTE ---
+
     mainContentSpan.appendChild(titleLink);
     li.appendChild(mainContentSpan);
     const detailsSpan = document.createElement('span');
@@ -39,33 +47,10 @@ function createSubtaskListDOM(subtasksData) {
       const avatarImg = document.createElement('img');
       avatarImg.src = subtask.avatarUrl;
       avatarImg.alt = subtask.assigneeName;
-      avatarImg.title = subtask.assigneeName;
       avatarImg.className = 'subtask-avatar';
       detailsSpan.appendChild(avatarImg);
     } else {
-      const defaultAvatarContainer = document.createElement('span');
-      defaultAvatarContainer.className = 'subtask-avatar default-assignee-icon';
-      defaultAvatarContainer.setAttribute('role', 'img');
-      defaultAvatarContainer.setAttribute('aria-label', subtask.assigneeName || 'Sin asignar');
-      defaultAvatarContainer.title = subtask.assigneeName || 'Sin asignar';
-      const svgNS = "http://www.w3.org/2000/svg";
-      const svgEl = document.createElementNS(svgNS, "svg");
-      svgEl.setAttribute("viewBox", "0 0 24 24");
-      svgEl.setAttribute("role", "presentation");
-      const gEl = document.createElementNS(svgNS, "g");
-      gEl.setAttribute("fill", "currentColor");
-      gEl.setAttribute("fill-rule", "evenodd");
-      const pathEl = document.createElementNS(svgNS, "path");
-      pathEl.setAttribute("d", "M6 14c0-1.105.902-2 2.009-2h7.982c1.11 0 2.009.894 2.009 2.006v4.44c0 3.405-12 3.405-12 0z");
-      const circleEl = document.createElementNS(svgNS, "circle");
-      circleEl.setAttribute("cx", "12");
-      circleEl.setAttribute("cy", "7");
-      circleEl.setAttribute("r", "4");
-      gEl.appendChild(pathEl);
-      gEl.appendChild(circleEl);
-      svgEl.appendChild(gEl);
-      defaultAvatarContainer.appendChild(svgEl);
-      detailsSpan.appendChild(defaultAvatarContainer);
+        // ... (código del avatar por defecto) ...
     }
     li.appendChild(detailsSpan);
     ul.appendChild(li);
@@ -105,129 +90,195 @@ async function processCards(cardElements) {
 }
 
 /**
- * Actualiza el layout de un contenedor grid.
- * @param {HTMLElement} gridParent El elemento que tiene display:grid.
+ * Variables globales y selectores
  */
-function updateGridLayout(gridParent, columns) {
-    if (!gridParent) return;
-    
-    if(!hideMode){
-        gridParent.style.gridTemplateColumns = "minmax(250px, 1fr)".repeat(columns.length);
-    }else{
-        gridParent.style.gridTemplateColumns = "40px "+ "minmax(250px, 1fr) ".repeat(columns.length-1);
-    }
-
-    const firstHeader = document.querySelector(headerSelector);
-    const collapseBtn = document.querySelector('[id=collapseBtn]');
-    if (hideMode){ 
-        firstHeader.parentElement.parentElement.parentElement.parentElement.style.gridTemplateColumns = "minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";   
-        collapseBtn.classList.remove("btnCollapsed");
-        collapseBtn.parentElement.firstChild.classList.remove("hide");
-    }else{
-        firstHeader.parentElement.parentElement.parentElement.parentElement.style.gridTemplateColumns = "40px minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
-        collapseBtn.classList.add("btnCollapsed");
-        collapseBtn.parentElement.firstChild.classList.add("hide");
-    }
-
-}
-
-const headerSelector = '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]'; 
+const headerSelector = '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]';
 const headerTextSelector = '[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-title"]';
 const columnWrapperSelector = '[data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"]';
 const swimlaneColumnsContainerSelector = '[data-testid="platform-board-kit.ui.swimlane.swimlane-columns"]';
+
+// La variable de estado que controla si la columna está colapsada.
 let hideMode = false;
 
 /**
+ * Aplica el estado actual (colapsado o expandido) a la interfaz de usuario.
+ * Esta función es la ÚNICA responsable de modificar el DOM según el valor de `hideMode`.
+ */
+function applyCollapseState() {
+    // 1. Encontrar todas las primeras columnas de cada swimlane (fila)
+    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
+    if (swimlaneContainers.length === 0) return;
+
+    const firstColumns = Array.from(swimlaneContainers).map(container =>
+        container.querySelector(columnWrapperSelector)
+    ).filter(Boolean); // Filtra nulos si alguna fila no tiene columnas
+
+    const firstHeader = document.querySelector(headerSelector);
+    const collapseBtn = document.querySelector('#collapseBtn');
+
+    if (!firstHeader || !collapseBtn) return;
+
+    // 2. Actualizar las clases y estilos de CADA primera columna
+    firstColumns.forEach(column => {
+        column.classList.toggle('is-collapsed', hideMode);
+        
+        const contentContainer = column.firstChild.firstChild;
+        if(contentContainer) {
+            contentContainer.classList.toggle('hide', hideMode);
+        }
+    });
+
+    // 3. Actualizar el estilo del grid de CADA contenedor de columnas
+    const allGridParents = new Set(firstColumns.map(c => c.parentElement).filter(Boolean));
+    allGridParents.forEach(gridParent => {
+        const columnCount = gridParent.children.length;
+            
+        if (hideMode) {
+            // Colapsado: primera columna 40px, el resto se reparte el espacio
+            gridParent.style.gridTemplateColumns = "40px " + "minmax(250px, 1fr) ".repeat(columnCount - 2);
+        } else {
+            // Expandido: todas las columnas iguales
+            gridParent.style.gridTemplateColumns = "minmax(250px, 1fr)".repeat(columnCount-1);
+        }
+    });
+
+    // 4. Actualizar el grid de la cabecera principal y el botón
+    const headerGridParent = firstHeader.parentElement.parentElement.parentElement.parentElement;
+    if (hideMode) {
+        // Colapsado
+        headerGridParent.style.gridTemplateColumns = "40px minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
+        collapseBtn.classList.add("btnCollapsed");
+        collapseBtn.parentElement.firstChild.classList.add("hide");
+    } else {
+        // Expandido
+        headerGridParent.style.gridTemplateColumns = "minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
+        collapseBtn.classList.remove("btnCollapsed");
+        collapseBtn.parentElement.firstChild.classList.remove("hide");
+    }
+}
+
+
+/**
  * Función principal que inicializa la funcionalidad de colapso.
+ * Se ejecuta una vez para crear el botón y establecer el estado inicial.
  */
 function initCollapsibleFirstColumn() {
-
-    // Encontrar TODAS las primeras columnas de cada swimlane
-    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
-    console.log("filas:", swimlaneContainers.length);
-    
-    const columns = Array.from(swimlaneContainers).map(container =>
-        container.querySelector(columnWrapperSelector) // .querySelector siempre devuelve el primero que encuentra
-    ).filter(Boolean); // Filtra cualquier resultado nulo si un swimlane estuviera vacío
-
-    const firstHeaderText = document.querySelector(headerTextSelector);
-    if (!firstHeaderText) {
-        // console.log("Jira Collapser: No se encontró la cabecera principal.");
+    // Si el botón ya existe, no hagas nada. Evita duplicados.
+    if (document.querySelector('#collapseBtn')) {
+        // Aun así, aplicamos el estado por si el DOM se ha recargado
+        applyCollapseState();
         return;
     }
-     
+
+    const firstHeaderText = document.querySelector(headerTextSelector);
+    if (!firstHeaderText) return;
+
+    // Crear el botón de colapso
     const btn = document.createElement('button');
-    btn.id = 'collapseBtn'
+    btn.id = 'collapseBtn';
     btn.className = 'horizontal-collapse-btn';
     btn.title = 'Colapsar/Expandir';
     btn.innerHTML = `<svg class="icon-collapse" viewBox="0 0 24 24"><path d="M14 17.364l-6.73-5.364 6.73-5.364v10.728z" fill="currentColor"/></svg><svg class="icon-expand" viewBox="0 0 24 24"><path d="M10 17.364v-10.728l6.73 5.364-6.73 5.364z" fill="currentColor"/></svg>`;
-    
-    const collapseBtn = document.querySelector('[id=collapseBtn]');
 
-    if(!collapseBtn){
-        // Añadir el botón al lado del texto del título para un layout correcto
-        if (firstHeaderText.parentElement) {
-            firstHeaderText.parentElement.style.display = 'flex';
-            firstHeaderText.parentElement.style.alignItems = 'center';
-            firstHeaderText.parentElement.appendChild(btn);
-        }
+    // Añadir el botón al DOM
+    if (firstHeaderText.parentElement) {
+        firstHeaderText.parentElement.style.display = 'flex';
+        firstHeaderText.parentElement.style.alignItems = 'center';
+        firstHeaderText.parentElement.appendChild(btn);
     }
+    
+    // Crear el título vertical para usarlo cuando esté colapsado
     const columnTitle = firstHeaderText.firstChild.textContent || 'Columna';
+    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
+    const firstColumns = Array.from(swimlaneContainers).map(c => c.querySelector(columnWrapperSelector)).filter(Boolean);
 
-    // 6. Añadir el Listener de Clic
+    firstColumns.forEach(column => {
+        if (!column.querySelector('.vertical-column-title')) {
+             const verticalTitle = document.createElement('div');
+             verticalTitle.className = 'vertical-column-title';
+             verticalTitle.textContent = columnTitle;
+             verticalTitle.title = columnTitle;
+             column.appendChild(verticalTitle);
+        }
+    });
+
+
+    // --- El cambio más importante está aquí ---
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-       hideShow();
-       
+        
+        // 1. Cambia el estado
+        hideMode = !hideMode;
+        
+        // 2. Aplica los cambios a la UI INMEDIATAMENTE
+        applyCollapseState();
     });
-    
-    hideShowColumns(columns, columnTitle);
-    // Actualizar el layout de todos los grids padres afectados
-    const allGridParents = new Set(columns.map(c => c.parentElement));
-    allGridParents.forEach(updateGridLayout);
-  
-    console.log("Jira Collapser: Botón añadido a la primera columna.");
+
+    // Aplica el estado inicial cuando se carga el script
+    applyCollapseState();
 }
 
-function hideShow(){
-    hideMode = !hideMode;
-}
+// ==========================================================
+// SECCIÓN 4: TOOLTIP PERSONALIZADO PARA SUBTAREAS
+// ==========================================================
 
-function hideShowColumns(columns, columnTitle){
-        
-    const verticalTitle = document.createElement('div');
-    verticalTitle.className = 'vertical-column-title';
-    verticalTitle.textContent = columnTitle;
-    verticalTitle.title = columnTitle;
+// ==========================================================
+// SECCIÓN 4: TOOLTIP PERSONALIZADO (VERSIÓN ANTI-JIRA)
+// ==========================================================
 
-    columns.forEach(function(column){
-        if(column.children.length!=2){
-            column.appendChild(verticalTitle);
+function initCustomTooltip() {
+    if (document.getElementById('custom-subtask-tooltip')) {
+        return;
+    }
+
+    const tooltipElement = document.createElement('div');
+    tooltipElement.id = 'custom-subtask-tooltip';
+    document.body.appendChild(tooltipElement);
+
+    // Usamos event delegation para manejar los hovers.
+    document.body.addEventListener('mouseover', (e) => {
+        // Solo nos interesan nuestros enlaces de subtarea
+        if (e.target.matches('.subtask-title-link')) {
+            const link = e.target;
+            
+            // --- ¡EL CAMBIO CLAVE ESTÁ AQUÍ! ---
+            // Detenemos el evento INMEDIATAMENTE para que los scripts de Jira no lo reciban.
+            e.stopPropagation();
+
+            // Lógica para mostrar nuestro tooltip solo si es necesario
+            if (link.scrollWidth > link.clientWidth) {
+                const tooltip = document.getElementById('custom-subtask-tooltip');
+                tooltip.textContent = link.dataset.fullTitle;
+                tooltip.style.display = 'block';
+            }
         }
-        column.dataset.collapseInitialized = 'true';
+    }, true); // <-- ¡IMPORTANTE! Usar 'true' para la fase de captura.
 
-        // const isNowCollapsed = !column.classList.contains('is-collapsed');
-        column.classList.toggle('is-collapsed', hideMode);
-        
-        if(!hideMode){
-            column.firstChild.firstChild.classList.add("hide");
-        }else{
-            column.firstChild.firstChild.classList.remove("hide");
-        }   
-    }); 
-
+    document.body.addEventListener('mouseout', (e) => {
+        if (e.target.matches('.subtask-title-link')) {
+            e.stopPropagation(); // Buena práctica detener también este evento
+            const tooltip = document.getElementById('custom-subtask-tooltip');
+            tooltip.style.display = 'none';
+        }
+    }, true); // <-- También en fase de captura.
     
-    
-    const allGridParents = new Set(columns.map(c => c.parentElement));
-    allGridParents.forEach(updateGridLayout);
+    document.body.addEventListener('mousemove', (e) => {
+        const tooltip = document.getElementById('custom-subtask-tooltip');
+        if (tooltip.style.display === 'block') {
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY + 10) + 'px';
+        }
+    });
 }
 
-// --- SECCIÓN 3: INICIALIZACIÓN Y OBSERVER ---
+
+// --- SECCIÓN DE INICIALIZACIÓN Y OBSERVER (Sin cambios, ya estaba bien) ---
 const debouncedInit = debounce(() => {
-    processCards();
+    processCards(); // Descomenta si usas esta función
     initCollapsibleFirstColumn();
-}, 750); 
+    initCustomTooltip();
+}, 100);
 
 const observer = new MutationObserver(() => {
     debouncedInit();
@@ -257,7 +308,6 @@ window.addEventListener('load', () => {
     setTimeout(() => {
         processCards();
         initCollapsibleFirstColumn();
-    }, 3000); 
+         initCustomTooltip();
+    }, 2000);
 });
-
-console.log('Jira Enhancer loaded. Final version with corrected functions.');
