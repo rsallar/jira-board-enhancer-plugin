@@ -1,8 +1,6 @@
 import '../styles/tooltip.css'; // ¡Importamos su CSS directamente!
 
 export function initCustomTooltip() {
-    console.log("init custom tooltip");
-
     if (document.getElementById('custom-subtask-tooltip')) {
         return;
     }

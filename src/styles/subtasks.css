@@ -152,3 +152,41 @@ div[data-issuefieldid="subtasks"] {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* El botón que muestra el estado actual (lozenge) */
+.status-selector-trigger {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  /* El color de fondo y de texto ahora se definen por las clases de abajo */
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.status-selector-trigger:hover {
+  opacity: 0.8;
+}
+
+/* --- CLASES DE COLOR BASADAS EN LA CATEGORÍA DEL ESTADO --- */
+.status-color-grey {
+  background-color: #DFE1E6; /* Gris (To Do) */
+  color: #44546F;
+}
+.status-color-blue {
+  background-color: #DEEBFF; /* Azul (In Progress) */
+  color: #0747A6;
+}
+.status-color-green {
+  background-color: #E3FCEF; /* Verde (Done) */
+  color: #006644;
+}
+
+.subtask-title-link.is-done {
+  text-decoration: line-through;
+}

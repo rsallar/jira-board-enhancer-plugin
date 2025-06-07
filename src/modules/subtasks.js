@@ -27,46 +27,37 @@ export function initCustomStatusSelector() {
   });
 }
 
-// Función que se ejecuta al hacer clic en un botón de estado
+// --- FUNCIÓN DE APERTURA DEL SELECTOR (ACTUALIZADA) ---
 async function openCustomStatusSelector(e) {
   const triggerButton = e.currentTarget;
   const issueKey = triggerButton.dataset.issueKey;
   const currentStatus = triggerButton.dataset.originalStatus;
 
-  // Si el popup ya está visible y fue abierto por este mismo botón, lo cerramos.
-  if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) {
-    customPopup.classList.remove('is-visible');
-    return;
-  }
+  if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) { /* ... */ }
   
   activeTrigger = triggerButton;
   triggerButton.classList.add('is-loading');
-  customPopup.innerHTML = ''; // Limpiamos contenido anterior
+  customPopup.innerHTML = '';
 
   const response = await new Promise(resolve => 
     chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey }, resolve)
   );
 
   triggerButton.classList.remove('is-loading');
+  if (!response || !response.success) { /* ... */ }
 
-  if (!response || !response.success) {
-    console.error(`Error al obtener estados para ${issueKey}.`);
-    return;
-  }
-
-  // Creamos la lista de opciones
   const optionsList = document.createElement('ul');
   response.data.forEach(transition => {
     const listItem = document.createElement('li');
     const optionButton = document.createElement('button');
     optionButton.textContent = transition.name;
     optionButton.dataset.transitionId = transition.id;
-    optionButton.dataset.newStatusName = transition.name;
     
-    if (transition.name === currentStatus) {
-      optionButton.classList.add('is-current-status');
-      optionButton.disabled = true; // No se puede seleccionar el estado actual
-    }
+    // Guardamos los datos del nuevo estado para actualizar el botón
+    optionButton.dataset.newStatusName = transition.to.name;
+    optionButton.dataset.newCategoryKey = transition.to.statusCategory.key;
+
+    if (transition.name === currentStatus) { /* ... */ }
 
     optionButton.addEventListener('click', async () => {
       triggerButton.classList.add('is-loading');
@@ -79,10 +70,18 @@ async function openCustomStatusSelector(e) {
       triggerButton.classList.remove('is-loading');
 
       if (setResponse && setResponse.success) {
-        // Actualizamos el botón con el nuevo estado
-        triggerButton.querySelector('span').textContent = getShortStatus(optionButton.dataset.newStatusName);
-        triggerButton.dataset.originalStatus = optionButton.dataset.newStatusName;
-        triggerButton.title = `Estado: ${optionButton.dataset.newStatusName} (clic para cambiar)`;
+        // --- ACTUALIZAMOS EL BOTÓN CON EL NUEVO ESTADO Y COLOR ---
+        const newStatusName = optionButton.dataset.newStatusName;
+        const newCategoryKey = optionButton.dataset.newCategoryKey;
+        
+        triggerButton.querySelector('span').textContent = getShortStatus(newStatusName);
+        triggerButton.dataset.originalStatus = newStatusName;
+        triggerButton.title = `Estado: ${newStatusName} (clic para cambiar)`;
+
+        // Eliminamos las clases de color antiguas y añadimos la nueva
+        triggerButton.classList.remove('status-color-grey', 'status-color-blue', 'status-color-green');
+        triggerButton.classList.add(getStatusCategoryClass(newCategoryKey));
+        // ---------------------------------------------------------
       } else {
         console.error(`Error al cambiar el estado de ${issueKey}.`);
       }
@@ -93,8 +92,6 @@ async function openCustomStatusSelector(e) {
   });
   
   customPopup.appendChild(optionsList);
-
-  // Posicionamos y mostramos el popup
   const rect = triggerButton.getBoundingClientRect();
   customPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
   customPopup.style.left = `${rect.left + window.scrollX}px`;
@@ -105,12 +102,36 @@ async function openCustomStatusSelector(e) {
 
 function getShortStatus(statusName) {
   if (!statusName) return '';
-  return statusName.split(' ')[0];
+
+  const upperStatus = statusName.toUpperCase();
+
+  if (upperStatus.length > 8) {
+    // Si es más largo, corta a 8 caracteres y añade "..."
+    return upperStatus.substring(0, 8) + '...';
+  } else {
+    // Si tiene 8 o menos, lo devuelve tal cual
+    return upperStatus;
+  }
 }
 
-function createStatusSpan(issueKey, statusName) {
+// NUEVA FUNCIÓN para obtener la clase CSS según la categoría
+function getStatusCategoryClass(categoryKey) {
+  switch (categoryKey) {
+    case 'done':
+      return 'status-color-green';
+    case 'indeterminate': // 'In Progress', 'In Review', etc.
+      return 'status-color-blue';
+    case 'new': // 'To Do', 'Open', 'Backlog', etc.
+    default:
+      return 'status-color-grey';
+  }
+}
+
+function createStatusSpan(issueKey, statusName, statusCategoryKey) {
   const statusButton = document.createElement('button');
-  statusButton.className = 'status-selector-trigger';
+  // Aplicamos la clase base y la clase de color
+  statusButton.className = `status-selector-trigger ${getStatusCategoryClass(statusCategoryKey)}`;
+  
   statusButton.dataset.issueKey = issueKey;
   statusButton.dataset.originalStatus = statusName;
   statusButton.title = `Estado: ${statusName} (clic para cambiar)`;
@@ -128,17 +149,23 @@ function createSubtaskListDOM(subtasksData) {
     if (!subtasksData || subtasksData.length === 0) return null;
     const ul = document.createElement('ul');
     ul.className = 'subtask-list';
+
     subtasksData.forEach(subtask => {
+        // --- 1. Crear el elemento de la fila y añadir el "escudo" anti-clic ---
         const li = document.createElement('li');
         li.className = 'subtask-item';
         li.addEventListener('click', (e) => e.stopPropagation());
+
+        // --- 2. Crear la sección principal (icono de tipo + título) ---
         const mainContentSpan = document.createElement('span');
         mainContentSpan.className = 'subtask-item-main';
+
         const typeIcon = document.createElement('img');
         typeIcon.src = subtask.issueTypeIconUrl;
         typeIcon.alt = subtask.issueType;
         typeIcon.className = 'subtask-issuetype-icon';
         mainContentSpan.appendChild(typeIcon);
+
         const titleLink = document.createElement('a');
         titleLink.className = 'subtask-title-link';
         titleLink.textContent = subtask.title;
@@ -146,12 +173,24 @@ function createSubtaskListDOM(subtasksData) {
         titleLink.href = subtask.url;
         titleLink.target = '_blank';
         titleLink.rel = 'noopener noreferrer';
+
+        if (subtask.statusCategoryKey === 'done') {
+            titleLink.classList.add('is-done');
+        }
+
         mainContentSpan.appendChild(titleLink);
+
         li.appendChild(mainContentSpan);
+
+        // --- 3. Crear la sección de detalles (estado + avatar) ---
         const detailsSpan = document.createElement('span');
         detailsSpan.className = 'subtask-item-details';
-        const statusButton = createStatusSpan(subtask.key, subtask.status);
+
+        // Usamos la función helper para crear el botón de estado con color
+        const statusButton = createStatusSpan(subtask.key, subtask.status, subtask.statusCategoryKey);
         detailsSpan.appendChild(statusButton);
+
+        // Lógica para mostrar el avatar del asignado o el avatar por defecto
         if (subtask.avatarUrl) {
             const avatarImg = document.createElement('img');
             avatarImg.src = subtask.avatarUrl;
@@ -171,9 +210,13 @@ function createSubtaskListDOM(subtasksData) {
             `;
             detailsSpan.appendChild(defaultAvatarContainer);
         }
+
         li.appendChild(detailsSpan);
+
+        // --- 4. Añadir la fila completa a la lista ---
         ul.appendChild(li);
     });
+
     return ul;
 }
 

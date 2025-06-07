@@ -25,6 +25,7 @@ async function fetchIssueDetails(issueKey) {
         key: data.key, // CLAVE: Añadimos la key de la issue, la necesitaremos
         title: data.fields.summary,
         status: data.fields.status.name,
+        statusCategoryKey: data.fields.status.statusCategory.key,
         avatarUrl: data.fields.assignee ? data.fields.assignee.avatarUrls['24x24'] : null,
         assigneeName: data.fields.assignee ? data.fields.assignee.displayName : 'Sin asignar',
         issueType: data.fields.issuetype.name,
