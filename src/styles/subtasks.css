@@ -1,17 +1,15 @@
-/* --- Estilos para la Lista de Subtareas --- */
+/* --- Estilos para la Lista de Subtareas (Sin cambios) --- */
 div[data-issuefieldid="subtasks"] {
   margin-top: 6px;
   width: 100%;
   box-sizing: border-box;
 }
-
 .subtask-list {
   list-style-type: none;
   padding: 0;
   margin: 0;
   font-size: 12px;
 }
-
 .subtask-item {
   display: flex;
   justify-content: space-between;
@@ -21,7 +19,6 @@ div[data-issuefieldid="subtasks"] {
   line-height: 1.4;
   min-height: 22px;
 }
-
 .subtask-item-main {
   display: flex;
   align-items: center;
@@ -29,28 +26,23 @@ div[data-issuefieldid="subtasks"] {
   min-width: 0;
   margin-right: 8px;
 }
-
 .subtask-issuetype-icon {
   width: 16px;
   height: 16px;
   margin-right: 5px;
   flex-shrink: 0;
 }
-
 .subtask-title-link {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
 }
-
 .subtask-item-details {
   display: flex;
   align-items: center;
   flex-shrink: 0;
 }
-
-/* --- Estilos para Avatares --- */
 .subtask-avatar {
   width: 20px;
   height: 20px;
@@ -61,50 +53,102 @@ div[data-issuefieldid="subtasks"] {
   vertical-align: middle;
   background-color: #DFE1E6;
 }
+.default-assignee-icon { color: #505F79; }
+.default-assignee-icon svg { width: 60%; height: 60%; display: block; }
 
-.default-assignee-icon {
-  color: #505F79;
-}
 
-.default-assignee-icon svg {
-  width: 60%;
-  height: 60%;
-  display: block;
-}
+/* --- NUEVOS ESTILOS PARA EL SELECTOR DE ESTADO PERSONALIZADO --- */
 
-/* --- NUEVOS ESTILOS PARA CAMBIO DE ESTADO --- */
-
-.subtask-status {
-  white-space: nowrap;
+/* El botón que muestra el estado actual (lozenge) */
+.status-selector-trigger {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #44546F; /* Color de texto del lozenge */
+  background-color: #DFE1E6; /* Fondo gris por defecto */
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
   margin-right: 8px;
-  color: #5E6C84;
-}
-
-/* Hace que el span del estado parezca un botón */
-.subtask-status.is-actionable {
   cursor: pointer;
-  padding: 2px 6px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.status-selector-trigger:hover {
+  background-color: #C1C7D0;
+}
+
+/* El panel flotante que contiene las opciones */
+#custom-status-popup {
+  position: absolute;
+  z-index: 10001; /* Por encima de todo */
+  background-color: #FFFFFF;
   border-radius: 3px;
-  background-color: transparent;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 4px 8px -2px rgba(9,30,66,0.25), 0 0 1px rgba(9,30,66,0.31);
+  min-width: 180px;
+  padding: 4px 0;
+  visibility: hidden; /* Oculto por defecto */
+  opacity: 0;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+#custom-status-popup.is-visible {
+  visibility: visible;
+  opacity: 1;
 }
 
-.subtask-status.is-actionable:hover {
-  background-color: #DFE1E6; /* Un gris claro de Jira */
+/* La lista dentro del panel */
+#custom-status-popup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-/* Estilo para el <select> dropdown */
-.subtask-status-select {
-  font-size: 12px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 2px;
-  /* Ocupa el mismo espacio que el span del estado */
-  margin-right: 8px; 
+/* Cada opción de la lista (que es un botón) */
+#custom-status-popup button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #172B4D;
+}
+#custom-status-popup button:hover {
+  background-color: #F4F5F7; /* Gris claro al pasar el ratón */
 }
 
-.subtask-status-select:focus {
-  outline: none;
-  border-color: #4C9AFF; /* Color de foco de Jira */
-  box-shadow: 0 0 0 1px #4C9AFF;
+/* Estilo para la opción que es el estado actual */
+#custom-status-popup button.is-current-status {
+  background-color: #F4F5F7;
+  font-weight: 500;
+  cursor: default;
+}
+
+/* Estilo para el estado de carga */
+.status-selector-trigger.is-loading {
+  cursor: wait;
+  color: transparent;
+  position: relative;
+}
+.status-selector-trigger.is-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  margin-left: -6px;
+  border: 2px solid rgba(68, 84, 111, 0.5);
+  border-top-color: #44546F;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

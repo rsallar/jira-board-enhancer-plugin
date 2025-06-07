@@ -2,12 +2,13 @@
 import { processCards } from './modules/subtasks.js';
 import { initCollapsibleFirstColumn } from './modules/collapser.js';
 import { initCustomTooltip } from './modules/tooltip.js';
+import { initCustomStatusSelector } from './modules/subtasks.js'; // <-- IMPORTAMOS LA NUEVA FUNCIÓN
 
 
 // Función principal que contiene toda la lógica.
 function main() {
   console.log("Jira Enhancer Inicializado por primera vez!");
-
+  initCustomStatusSelector(); 
   // --- FUNCIÓN DEBOUNCE (Utilidad General) ---
   function debounce(func, wait) {
     let timeout;
