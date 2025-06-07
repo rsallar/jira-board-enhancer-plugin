@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Jira Sub-task Enhancer",
-  "version": "0.1.0",
-  "description": "Displays sub-task details in a table on Jira cards.",
+  "version": "0.2.0",
+  "description": "Displays sub-task details, allows status changes on Jira cards and allow collapsing the first column.",
   "permissions": [
     "activeTab",
     "scripting",

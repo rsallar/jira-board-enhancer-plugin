@@ -122,7 +122,6 @@ async function injectContentScripts(tab) {
       func: () => window.jiraEnhancerLoaded,
     });
     if (result) {
-      console.log("Jira Enhancer ya está inyectado. Omitiendo.");
       return;
     }
   } catch (e) {
@@ -130,7 +129,6 @@ async function injectContentScripts(tab) {
   }
 
   try {
-    console.log("Inyectando Jira Enhancer por primera vez en la pestaña:", tab.id);
     await chrome.scripting.insertCSS({
       target: { tabId: tab.id },
       files: ["styles.css"],
@@ -155,5 +153,3 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     injectContentScripts(tab);
   }
 });
-
-console.log("Jira Enhancer Service Worker cargado.");

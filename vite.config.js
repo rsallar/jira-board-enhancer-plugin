@@ -35,6 +35,6 @@ export default defineConfig({
     },
     // Desactivamos la minificación para que sea más fácil depurar durante el desarrollo.
     // Para la versión final que subas a la tienda, puedes cambiarlo a 'esbuild' o 'terser'.
-    minify: false, 
+    minify: 'esbuild', 
   },
 });

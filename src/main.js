@@ -26,7 +26,6 @@ if (!window.JiraEnhancerState) {
 }
 
 function main() {
-  console.log("Jira Enhancer (vVite) Inicializado por primera vez!");
 
   initCustomStatusSelector(); 
 
@@ -64,5 +63,5 @@ if (!window.jiraEnhancerLoaded) {
   window.jiraEnhancerLoaded = true;
   main();
 } else {
-  console.log("Jira Enhancer ya está cargado. Omitiendo reinicialización.");
+  //"Jira Enhancer ya está cargado. Omitiendo reinicialización."
 }
