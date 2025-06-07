@@ -15,35 +15,48 @@ if (!window.JiraEnhancerState) {
 // de nuestro objeto singleton: window.JiraEnhancerState.customPopup, etc.
 
 export function initCustomStatusSelector() {
-  if (document.getElementById('custom-status-popup')) return;
-  // Usamos nuestro objeto de estado
-  window.JiraEnhancerState.customPopup = document.createElement('div');
-  window.JiraEnhancerState.customPopup.id = 'custom-status-popup';
-  document.body.appendChild(window.JiraEnhancerState.customPopup);
+    if (document.getElementById('custom-status-popup')) return;
+    
+    // --- 1. CREAMOS EL POPUP ---
+    window.JiraEnhancerState.customPopup = document.createElement('div');
+    window.JiraEnhancerState.customPopup.id = 'custom-status-popup';
+    document.body.appendChild(window.JiraEnhancerState.customPopup);
+    
+    // --- 2. USAMOS DELEGACIÓN DE EVENTOS ---
+    document.body.addEventListener('click', (e) => {
+        const { customPopup, activeTrigger } = window.JiraEnhancerState;
 
-  document.addEventListener('click', (e) => {
-    const { customPopup, activeTrigger } = window.JiraEnhancerState;
-    if (customPopup.classList.contains('is-visible') && !customPopup.contains(e.target) && e.target !== activeTrigger) {
-      customPopup.classList.remove('is-visible');
-    }
-  });
+        // Lógica para cerrar el popup si se clica fuera
+        if (customPopup.classList.contains('is-visible') && !customPopup.contains(e.target) && e.target !== activeTrigger) {
+            customPopup.classList.remove('is-visible');
+        }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && window.JiraEnhancerState.customPopup.classList.contains('is-visible')) {
-      window.JiraEnhancerState.customPopup.classList.remove('is-visible');
-    }
-  });
+        // Lógica para abrir el popup
+        const statusTrigger = e.target.closest('.status-selector-trigger');
+        if (statusTrigger) {
+            openCustomStatusSelector(statusTrigger);
+        }
+
+        // Lógica para detener el clic en la fila
+        const subtaskItem = e.target.closest('.subtask-item');
+        if (subtaskItem) {
+            e.stopPropagation();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => { /* ... tu código no cambia ... */ });
 }
 
-async function openCustomStatusSelector(e) {
-  // Obtenemos las referencias de nuestro objeto de estado
+async function openCustomStatusSelector(triggerButton) {
+  // Obtenemos las referencias de nuestro objeto de estado global
   const { customPopup } = window.JiraEnhancerState;
   let { activeTrigger } = window.JiraEnhancerState;
 
-  const triggerButton = e.currentTarget;
+  // Los datos de la subtarea los obtenemos del dataset del botón
   const issueKey = triggerButton.dataset.issueKey;
   const currentStatus = triggerButton.dataset.originalStatus;
 
+  // Si el popup ya está visible y fue abierto por este mismo botón, lo cerramos y salimos.
   if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) {
     customPopup.classList.remove('is-visible');
     return;
@@ -51,21 +64,24 @@ async function openCustomStatusSelector(e) {
   
   // Actualizamos el trigger activo en nuestro objeto de estado
   window.JiraEnhancerState.activeTrigger = triggerButton;
-  activeTrigger = triggerButton; // Actualizamos la variable local también
   
+  // Mostramos el estado de carga y limpiamos el contenido anterior del popup
   triggerButton.classList.add('is-loading');
   customPopup.innerHTML = '';
 
+  // Pedimos las transiciones disponibles al backend
   const response = await new Promise(resolve => 
     chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey }, resolve)
   );
 
   triggerButton.classList.remove('is-loading');
+
   if (!response || !response.success) {
     console.error(`Error al obtener estados para ${issueKey}.`);
     return;
   }
 
+  // Creamos la lista de opciones para el popup
   const optionsList = document.createElement('ul');
   response.data.forEach(transition => {
     const listItem = document.createElement('li');
@@ -75,11 +91,13 @@ async function openCustomStatusSelector(e) {
     optionButton.dataset.newStatusName = transition.to.name;
     optionButton.dataset.newCategoryKey = transition.to.statusCategory.key;
 
+    // Marcamos la opción que corresponde al estado actual
     if (transition.name === currentStatus) {
       optionButton.classList.add('is-current-status');
       optionButton.disabled = true;
     }
 
+    // Añadimos el listener para ejecutar el cambio de estado al hacer clic
     optionButton.addEventListener('click', async () => {
       triggerButton.classList.add('is-loading');
       customPopup.classList.remove('is-visible');
@@ -91,12 +109,14 @@ async function openCustomStatusSelector(e) {
       triggerButton.classList.remove('is-loading');
 
       if (setResponse && setResponse.success) {
+        // Actualizamos el botón de la UI con el nuevo estado y color
         const newStatusName = optionButton.dataset.newStatusName;
         const newCategoryKey = optionButton.dataset.newCategoryKey;
         
         triggerButton.querySelector('span').textContent = getShortStatus(newStatusName);
         triggerButton.dataset.originalStatus = newStatusName;
         triggerButton.title = `Estado: ${newStatusName} (clic para cambiar)`;
+        
         triggerButton.classList.remove('status-color-grey', 'status-color-blue', 'status-color-green');
         triggerButton.classList.add(getStatusCategoryClass(newCategoryKey));
       } else {
@@ -109,13 +129,16 @@ async function openCustomStatusSelector(e) {
   });
   
   customPopup.appendChild(optionsList);
+  
+  // Posicionamos el popup justo debajo del botón que lo abrió
   const rect = triggerButton.getBoundingClientRect();
   customPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
   customPopup.style.left = `${rect.left + window.scrollX}px`;
+  
+  // Hacemos visible el popup
   customPopup.classList.add('is-visible');
 }
 
-// --- FUNCIONES HELPER (EXISTENTES Y NUEVAS) ---
 
 function getShortStatus(statusName) {
   if (!statusName) return '';
@@ -146,34 +169,40 @@ function getStatusCategoryClass(categoryKey) {
 
 function createStatusSpan(issueKey, statusName, statusCategoryKey) {
   const statusButton = document.createElement('button');
-  // Aplicamos la clase base y la clase de color
+  
+  // Añadimos la clase base y la clase de color
   statusButton.className = `status-selector-trigger ${getStatusCategoryClass(statusCategoryKey)}`;
   
+  // Guardamos todos los datos necesarios en el dataset del botón
   statusButton.dataset.issueKey = issueKey;
   statusButton.dataset.originalStatus = statusName;
   statusButton.title = `Estado: ${statusName} (clic para cambiar)`;
   
+  // Creamos el span interior para el texto
   const textSpan = document.createElement('span');
   textSpan.textContent = getShortStatus(statusName);
   statusButton.appendChild(textSpan);
   
-  statusButton.addEventListener('click', openCustomStatusSelector);
+  // ¡IMPORTANTE! Ya no añadimos el listener aquí. La delegación se encarga.
+  
   return statusButton;
 }
 
 // --- FUNCIÓN DE RENDERIZADO PRINCIPAL (ACTUALIZADA) ---
 function createSubtaskListDOM(subtasksData) {
-    if (!subtasksData || subtasksData.length === 0) return null;
+    if (!subtasksData || !subtasksData.length === 0) return null;
+
+    // 1. Creamos el DocumentFragment. Es un contenedor ligero en memoria.
+    const fragment = document.createDocumentFragment();
+    
     const ul = document.createElement('ul');
     ul.className = 'subtask-list';
 
     subtasksData.forEach(subtask => {
-        // --- 1. Crear el elemento de la fila y añadir el "escudo" anti-clic ---
         const li = document.createElement('li');
         li.className = 'subtask-item';
-        li.addEventListener('click', (e) => e.stopPropagation());
+        // El listener de clic se maneja por delegación, así que no se añade aquí.
 
-        // --- 2. Crear la sección principal (icono de tipo + título) ---
         const mainContentSpan = document.createElement('span');
         mainContentSpan.className = 'subtask-item-main';
 
@@ -185,29 +214,24 @@ function createSubtaskListDOM(subtasksData) {
 
         const titleLink = document.createElement('a');
         titleLink.className = 'subtask-title-link';
+        if (subtask.statusCategoryKey === 'done') {
+            titleLink.classList.add('is-done');
+        }
         titleLink.textContent = subtask.title;
         titleLink.dataset.fullTitle = subtask.title;
         titleLink.href = subtask.url;
         titleLink.target = '_blank';
         titleLink.rel = 'noopener noreferrer';
-
-        if (subtask.statusCategoryKey === 'done') {
-            titleLink.classList.add('is-done');
-        }
-
         mainContentSpan.appendChild(titleLink);
-
+        
         li.appendChild(mainContentSpan);
 
-        // --- 3. Crear la sección de detalles (estado + avatar) ---
         const detailsSpan = document.createElement('span');
         detailsSpan.className = 'subtask-item-details';
 
-        // Usamos la función helper para crear el botón de estado con color
         const statusButton = createStatusSpan(subtask.key, subtask.status, subtask.statusCategoryKey);
         detailsSpan.appendChild(statusButton);
 
-        // Lógica para mostrar el avatar del asignado o el avatar por defecto
         if (subtask.avatarUrl) {
             const avatarImg = document.createElement('img');
             avatarImg.src = subtask.avatarUrl;
@@ -227,44 +251,77 @@ function createSubtaskListDOM(subtasksData) {
             `;
             detailsSpan.appendChild(defaultAvatarContainer);
         }
-
+        
         li.appendChild(detailsSpan);
-
-        // --- 4. Añadir la fila completa a la lista ---
+        
+        // 2. Añadimos cada fila al <ul> que todavía está en memoria.
         ul.appendChild(li);
     });
 
-    return ul;
+    // 3. Una vez terminado el bucle, añadimos la lista completa (ul) al fragmento.
+    fragment.appendChild(ul);
+    
+    // 4. Devolvemos el fragmento. El navegador lo insertará en el DOM de una sola vez.
+    return fragment;
 }
 
 // --- FUNCIÓN DE PROCESAMIENTO DE TARJETAS (SIN CAMBIOS) ---
 export async function processCards(cardElements) {
-    const cardsToProcess = cardElements || document.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]');
-    for (const card of cardsToProcess) {
-        if (card.dataset.subtasksProcessed === 'true') continue;
-        const subtaskContainerSelector = 'div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]';
-        const subtaskContainer = card.querySelector(subtaskContainerSelector);
-        if (!subtaskContainer) {
-            card.dataset.subtasksProcessed = 'true';
-            continue;
-        }
-        const subtaskIssueKeys = (subtaskContainer.textContent.match(/[A-ZÁÉÍÓÚÑÜ]+-[0-9]+/gi) || []).map(k => k.toUpperCase());
-        if (subtaskIssueKeys.length > 0) {
-            const subtaskPromises = subtaskIssueKeys.map(issueKey => new Promise(resolve => {
-                chrome.runtime.sendMessage({ type: "GET_SUBTASK_DETAILS", issueKey }, response => {
-                    if (chrome.runtime.lastError) { resolve(null); return; }
-                    resolve(response && response.success ? response.data : null);
-                });
-            }));
-            const subtasksData = (await Promise.all(subtaskPromises)).filter(Boolean);
-            if (subtasksData.length > 0) {
-                const listElement = createSubtaskListDOM(subtasksData);
-                if (listElement) {
-                    subtaskContainer.innerHTML = '';
-                    subtaskContainer.appendChild(listElement);
-                }
+    const cardsToProcess = Array.from(cardElements || document.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]'));
+    const unprocessedCards = cardsToProcess.filter(card => card.dataset.subtasksProcessed !== 'true');
+
+    if (unprocessedCards.length === 0) return;
+
+    // --- 1. RECOGER TODAS LAS CLAVES PRIMERO ---
+    const allSubtaskKeys = new Set();
+    const cardKeyMap = new Map(); // Para saber qué subtareas pertenecen a qué tarjeta
+
+    unprocessedCards.forEach(card => {
+        const subtaskContainer = card.querySelector('div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]');
+        if (subtaskContainer) {
+            const issueKeys = (subtaskContainer.textContent.match(/[A-ZÁÉÍÓÚÑÜ]+-[0-9]+/gi) || []).map(k => k.toUpperCase());
+            if (issueKeys.length > 0) {
+                cardKeyMap.set(card, issueKeys);
+                issueKeys.forEach(key => allSubtaskKeys.add(key));
             }
         }
+        // Marcar la tarjeta como procesada aquí para evitar que se vuelva a escanear,
+        // incluso si no tiene subtareas.
         card.dataset.subtasksProcessed = 'true';
+    });
+
+    if (allSubtaskKeys.size === 0) {
+        return; // No hay subtareas que buscar, salimos.
     }
+
+    // --- 2. HACER UNA ÚNICA PETICIÓN ---
+    const response = await new Promise(resolve => {
+        chrome.runtime.sendMessage({
+            type: "GET_MULTIPLE_SUBTASK_DETAILS",
+            issueKeys: Array.from(allSubtaskKeys)
+        }, resolve);
+    });
+
+    if (!response || !response.success) {
+        console.error("Error al obtener detalles de múltiples subtareas.");
+        return;
+    }
+
+    const detailsMap = response.data;
+
+    // --- 3. RENDERIZAR TODO CON LOS DATOS YA OBTENIDOS ---
+    cardKeyMap.forEach((subtaskKeys, card) => {
+        // 'subtasksData' se define AQUÍ, dentro del bucle, para esta tarjeta específica.
+        const subtasksData = subtaskKeys.map(key => detailsMap[key]).filter(Boolean);
+        
+        // El 'if' que usa 'subtasksData' está justo después, en el ámbito correcto.
+        if (subtasksData.length > 0) {
+            const subtaskContainer = card.querySelector('div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]');
+            const listElement = createSubtaskListDOM(subtasksData);
+            if (listElement && subtaskContainer) {
+                subtaskContainer.innerHTML = '';
+                subtaskContainer.appendChild(listElement);
+            }
+        }
+    });
 }

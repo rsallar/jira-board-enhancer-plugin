@@ -97,6 +97,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     postTransition(request.issueKey, request.transitionId).then(sendResponse);
     return true; // Respuesta asíncrona
   }
+  if (request.type === "GET_MULTIPLE_SUBTASK_DETAILS") {
+    const promises = request.issueKeys.map(key => fetchIssueDetails(key));
+    Promise.all(promises).then(results => {
+        // Creamos un mapa para que el frontend pueda buscar los detalles fácilmente
+        const detailsMap = {};
+        results.forEach(res => {
+            if (res.success) {
+                detailsMap[res.data.key] = res.data;
+            }
+        });
+        sendResponse({ success: true, data: detailsMap });
+    });
+    return true; // Respuesta asíncrona
+  }
 });
 
 
