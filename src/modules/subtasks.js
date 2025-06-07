@@ -1,41 +1,58 @@
 import '../styles/subtasks.css';
 
-// --- LÓGICA DEL NUEVO SELECTOR DE ESTADO PERSONALIZADO ---
+// --- ¡NUEVO PATRÓN SINGLETON PARA EL ESTADO! ---
+// Comprobamos si nuestro objeto de estado global ya existe.
+// Si no existe, lo creamos. Esto solo se ejecutará la primera vez.
+if (!window.JiraEnhancerState) {
+  window.JiraEnhancerState = {
+    customPopup: null,    // Referencia al panel del selector de estado
+    activeTrigger: null,  // Referencia al botón que abrió el panel
+  };
+}
+// ------------------------------------------------
 
-let customPopup = null; // Variable global para el panel
-let activeTrigger = null; // El botón que abrió el panel
+// Ahora, en lugar de usar variables globales, usaremos las propiedades
+// de nuestro objeto singleton: window.JiraEnhancerState.customPopup, etc.
 
-// Crea el panel flotante una sola vez y lo añade al body
 export function initCustomStatusSelector() {
   if (document.getElementById('custom-status-popup')) return;
-  customPopup = document.createElement('div');
-  customPopup.id = 'custom-status-popup';
-  document.body.appendChild(customPopup);
+  // Usamos nuestro objeto de estado
+  window.JiraEnhancerState.customPopup = document.createElement('div');
+  window.JiraEnhancerState.customPopup.id = 'custom-status-popup';
+  document.body.appendChild(window.JiraEnhancerState.customPopup);
 
-  // Listener para cerrar el popup si se clica fuera
   document.addEventListener('click', (e) => {
+    const { customPopup, activeTrigger } = window.JiraEnhancerState;
     if (customPopup.classList.contains('is-visible') && !customPopup.contains(e.target) && e.target !== activeTrigger) {
       customPopup.classList.remove('is-visible');
     }
   });
 
-  // Listener para cerrar con la tecla Escape
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && customPopup.classList.contains('is-visible')) {
-      customPopup.classList.remove('is-visible');
+    if (e.key === 'Escape' && window.JiraEnhancerState.customPopup.classList.contains('is-visible')) {
+      window.JiraEnhancerState.customPopup.classList.remove('is-visible');
     }
   });
 }
 
-// --- FUNCIÓN DE APERTURA DEL SELECTOR (ACTUALIZADA) ---
 async function openCustomStatusSelector(e) {
+  // Obtenemos las referencias de nuestro objeto de estado
+  const { customPopup } = window.JiraEnhancerState;
+  let { activeTrigger } = window.JiraEnhancerState;
+
   const triggerButton = e.currentTarget;
   const issueKey = triggerButton.dataset.issueKey;
   const currentStatus = triggerButton.dataset.originalStatus;
 
-  if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) { /* ... */ }
+  if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) {
+    customPopup.classList.remove('is-visible');
+    return;
+  }
   
-  activeTrigger = triggerButton;
+  // Actualizamos el trigger activo en nuestro objeto de estado
+  window.JiraEnhancerState.activeTrigger = triggerButton;
+  activeTrigger = triggerButton; // Actualizamos la variable local también
+  
   triggerButton.classList.add('is-loading');
   customPopup.innerHTML = '';
 
@@ -44,7 +61,10 @@ async function openCustomStatusSelector(e) {
   );
 
   triggerButton.classList.remove('is-loading');
-  if (!response || !response.success) { /* ... */ }
+  if (!response || !response.success) {
+    console.error(`Error al obtener estados para ${issueKey}.`);
+    return;
+  }
 
   const optionsList = document.createElement('ul');
   response.data.forEach(transition => {
@@ -52,12 +72,13 @@ async function openCustomStatusSelector(e) {
     const optionButton = document.createElement('button');
     optionButton.textContent = transition.name;
     optionButton.dataset.transitionId = transition.id;
-    
-    // Guardamos los datos del nuevo estado para actualizar el botón
     optionButton.dataset.newStatusName = transition.to.name;
     optionButton.dataset.newCategoryKey = transition.to.statusCategory.key;
 
-    if (transition.name === currentStatus) { /* ... */ }
+    if (transition.name === currentStatus) {
+      optionButton.classList.add('is-current-status');
+      optionButton.disabled = true;
+    }
 
     optionButton.addEventListener('click', async () => {
       triggerButton.classList.add('is-loading');
@@ -70,18 +91,14 @@ async function openCustomStatusSelector(e) {
       triggerButton.classList.remove('is-loading');
 
       if (setResponse && setResponse.success) {
-        // --- ACTUALIZAMOS EL BOTÓN CON EL NUEVO ESTADO Y COLOR ---
         const newStatusName = optionButton.dataset.newStatusName;
         const newCategoryKey = optionButton.dataset.newCategoryKey;
         
         triggerButton.querySelector('span').textContent = getShortStatus(newStatusName);
         triggerButton.dataset.originalStatus = newStatusName;
         triggerButton.title = `Estado: ${newStatusName} (clic para cambiar)`;
-
-        // Eliminamos las clases de color antiguas y añadimos la nueva
         triggerButton.classList.remove('status-color-grey', 'status-color-blue', 'status-color-green');
         triggerButton.classList.add(getStatusCategoryClass(newCategoryKey));
-        // ---------------------------------------------------------
       } else {
         console.error(`Error al cambiar el estado de ${issueKey}.`);
       }
