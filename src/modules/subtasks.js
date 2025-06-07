@@ -12,53 +12,15 @@ export function initCustomStatusSelector() {
   state.customPopup.id = 'custom-status-popup';
   document.body.appendChild(state.customPopup);
   
-  // --- ¡NUEVO LISTENER DE MOUSE DOWN! ---
-  // Este es nuestro "escudo". Se ejecuta en la fase de captura (true)
-  // para ser el primero en actuar.
-  document.body.addEventListener('mousedown', (e) => {
-    // Si el mousedown ocurre sobre nuestro botón de estado...
-    const statusTrigger = e.target.closest('.status-selector-trigger');
-    if (statusTrigger) {
-      // ...detenemos el evento inmediatamente. Esto previene que el listener
-      // de Jira en la tarjeta padre se active y comience la navegación.
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true); // <-- El 'true' es vital para usar la fase de captura.
-
-
-  // --- NUESTRO LISTENER DE CLICK (AHORA SEGURO) ---
-  // Este listener ahora se ejecutará sin que Jira interfiera,
-  // porque el mousedown ya ha sido neutralizado.
-  document.body.addEventListener('click', (e) => {
-    // Comprobamos si el clic fue en nuestro botón de estado
-    const statusTrigger = e.target.closest('.status-selector-trigger');
-    if (statusTrigger) {
-      // Como ya hemos prevenido la acción por defecto en el mousedown,
-      // aquí solo nos preocupamos de abrir nuestro selector.
-      openCustomStatusSelector(statusTrigger);
-      return;
-    }
-
-    // El resto de la lógica de delegación para cerrar el popup y
-    // manejar otros clics se queda igual.
-    const titleLink = e.target.closest('.subtask-title-link');
-    if (titleLink) {
-        e.stopPropagation();
-        return;
-    }
-    
-    const subtaskItem = e.target.closest('.subtask-item');
-    if (subtaskItem) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    if (state.customPopup.classList.contains('is-visible') && !e.target.closest('#custom-status-popup')) {
+  // Listener para cerrar el popup si se clica fuera
+  document.addEventListener('click', (e) => {
+    // Si el popup está visible y el clic NO es en un botón de estado ni dentro del popup...
+    if (state.customPopup.classList.contains('is-visible') && !e.target.closest('.status-selector-trigger') && !e.target.closest('#custom-status-popup')) {
         state.customPopup.classList.remove('is-visible');
     }
   });
 
+  // Listener para cerrar con la tecla Escape
   document.addEventListener('keydown', (e) => {
       const { customPopup } = window.JiraEnhancerState.statusSelector;
       if (e.key === 'Escape' && customPopup.classList.contains('is-visible')) {
@@ -67,28 +29,24 @@ export function initCustomStatusSelector() {
    });
 }
 
-async function openCustomStatusSelector(triggerButton) {
-  // Obtenemos las referencias de nuestro objeto de estado global
- const { customPopup, activeTrigger } = window.JiraEnhancerState.statusSelector;
-
-  // Los datos de la subtarea los obtenemos del dataset del botón
+async function openCustomStatusSelector(e) {
+  e.stopPropagation();
+  const triggerButton = e.currentTarget;
+  
+  const { customPopup, activeTrigger } = window.JiraEnhancerState.statusSelector;
   const issueKey = triggerButton.dataset.issueKey;
   const currentStatus = triggerButton.dataset.originalStatus;
 
-  // Si el popup ya está visible y fue abierto por este mismo botón, lo cerramos y salimos.
   if (customPopup.classList.contains('is-visible') && activeTrigger === triggerButton) {
     customPopup.classList.remove('is-visible');
     return;
   }
   
-  // Actualizamos el trigger activo en nuestro objeto de estado
   window.JiraEnhancerState.statusSelector.activeTrigger = triggerButton;
   
-  // Mostramos el estado de carga y limpiamos el contenido anterior del popup
   triggerButton.classList.add('is-loading');
   customPopup.innerHTML = '';
 
-  // Pedimos las transiciones disponibles al backend
   const response = await new Promise(resolve => 
     chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey }, resolve)
   );
@@ -188,21 +146,18 @@ function getStatusCategoryClass(categoryKey) {
 
 function createStatusSpan(issueKey, statusName, statusCategoryKey) {
   const statusButton = document.createElement('button');
-  
-  // Añadimos la clase base y la clase de color
   statusButton.className = `status-selector-trigger ${getStatusCategoryClass(statusCategoryKey)}`;
-  
-  // Guardamos todos los datos necesarios en el dataset del botón
   statusButton.dataset.issueKey = issueKey;
   statusButton.dataset.originalStatus = statusName;
   statusButton.title = `Estado: ${statusName} (clic para cambiar)`;
   
-  // Creamos el span interior para el texto
   const textSpan = document.createElement('span');
   textSpan.textContent = getShortStatus(statusName);
   statusButton.appendChild(textSpan);
   
-  // ¡IMPORTANTE! Ya no añadimos el listener aquí. La delegación se encarga.
+  // --- ¡RESTAURAMOS EL LISTENER DIRECTO! ---
+  // Este es el método que funcionaba y es más robusto.
+  statusButton.addEventListener('click', openCustomStatusSelector);
   
   return statusButton;
 }
