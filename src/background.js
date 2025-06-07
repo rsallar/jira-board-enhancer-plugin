@@ -1,31 +1,28 @@
 // --- CONFIGURACIÓN ---
 const JIRA_URL_BASE = "https://paradigma.atlassian.net";
 
-// --- FUNCIÓN PARA LLAMAR A LA API DE JIRA ---
+// --- FUNCIÓN: OBTENER DETALLES DE UNA TAREA ---
 async function fetchIssueDetails(issueKey) {
-  // ... (tu código de fetchIssueDetails, sin cambios, está perfecto)
-  if (!JIRA_URL_BASE) {
-    console.error('Jira Enhancer: Configuración de JIRA_URL_BASE no encontrada en background.js.');
-    return { success: false, error: 'Configuración JIRA_URL_BASE incompleta en background.js.' };
-  }
   const apiUrl = `${JIRA_URL_BASE}/rest/api/2/issue/${issueKey}?fields=summary,status,assignee,issuetype`;
-  const headers = new Headers();
-  headers.append('Accept', 'application/json');
+
   try {
     const response = await fetch(apiUrl, {
       method: 'GET',
-      headers: headers,
+      headers: { 'Accept': 'application/json' },
       credentials: 'include'
     });
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Jira Enhancer: Error fetching ${issueKey}: ${response.status} - ${response.statusText}`, errorText);
       return { success: false, error: `API Error ${response.status} (${response.statusText})`, data: errorText };
     }
+    
     const data = await response.json();
     return {
       success: true,
       data: {
+        key: data.key, // CLAVE: Añadimos la key de la issue, la necesitaremos
         title: data.fields.summary,
         status: data.fields.status.name,
         avatarUrl: data.fields.assignee ? data.fields.assignee.avatarUrls['24x24'] : null,
@@ -41,47 +38,88 @@ async function fetchIssueDetails(issueKey) {
   }
 }
 
-// --- GESTOR DE MENSAJES ENTRE SCRIPTS ---
+// --- NUEVA FUNCIÓN: OBTENER TRANSICIONES DISPONIBLES ---
+async function fetchTransitions(issueKey) {
+  const apiUrl = `${JIRA_URL_BASE}/rest/api/2/issue/${issueKey}/transitions`;
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    });
+    if (!response.ok) throw new Error(`API Error ${response.status}`);
+    const data = await response.json();
+    return { success: true, data: data.transitions }; // Devuelve el array de transiciones
+  } catch (error) {
+    console.error(`Error fetching transitions for ${issueKey}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+// --- NUEVA FUNCIÓN: EJECUTAR UNA TRANSICIÓN (CAMBIAR ESTADO) ---
+async function postTransition(issueKey, transitionId) {
+  const apiUrl = `${JIRA_URL_BASE}/rest/api/2/issue/${issueKey}/transitions`;
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        transition: {
+          id: transitionId
+        }
+      })
+    });
+    // Una respuesta 204 (No Content) es un éxito para esta operación
+    if (!response.ok) throw new Error(`API Error ${response.status} (${response.statusText})`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error posting transition for ${issueKey}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+// --- GESTOR DE MENSAJES (ACTUALIZADO) ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "GET_SUBTASK_DETAILS") {
-    fetchIssueDetails(request.issueKey)
-      .then(response => sendResponse(response));
+    fetchIssueDetails(request.issueKey).then(sendResponse);
+    return true;
+  }
+  if (request.type === "GET_TRANSITIONS") {
+    fetchTransitions(request.issueKey).then(sendResponse);
+    return true; // Respuesta asíncrona
+  }
+  if (request.type === "SET_TRANSITION") {
+    postTransition(request.issueKey, request.transitionId).then(sendResponse);
     return true; // Respuesta asíncrona
   }
 });
 
 
-// --- FUNCIÓN DE INYECCIÓN INTELIGENTE ---
+// --- LÓGICA DE INYECCIÓN INTELIGENTE ---
 async function injectContentScripts(tab) {
   try {
-    // 1. COMPROBACIÓN PREVIA: Ejecutamos una función diminuta en la página
-    //    para ver si nuestro guardián 'window.jiraEnhancerLoaded' ya existe.
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => window.jiraEnhancerLoaded,
     });
-
-    // Si 'result' es true, significa que el script ya está ahí. No hacemos nada más.
     if (result) {
       console.log("Jira Enhancer ya está inyectado. Omitiendo.");
       return;
     }
-
   } catch (e) {
-    // Este error puede ocurrir si intentamos acceder a una página protegida
-    // (como la Chrome Web Store) o si la pestaña se está cerrando. Lo ignoramos.
     console.warn(`No se pudo comprobar el estado del script en la pestaña ${tab.id}:`, e.message);
   }
 
-  // 2. INYECCIÓN: Si la comprobación previa no devolvió 'true', procedemos a inyectar.
   try {
     console.log("Inyectando Jira Enhancer por primera vez en la pestaña:", tab.id);
-
     await chrome.scripting.insertCSS({
       target: { tabId: tab.id },
       files: ["styles.css"],
     });
-
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ["main.js"],
@@ -91,17 +129,14 @@ async function injectContentScripts(tab) {
   }
 }
 
-// --- LISTENER DE PESTAÑAS (Ahora más simple) ---
+// --- LISTENER DE PESTAÑAS ---
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete' || !tab.url) {
     return;
   }
-
   const urlMatchesBase = tab.url.startsWith(JIRA_URL_BASE);
   const isBoardPage = tab.url.includes('/boards/') || tab.url.includes('/RapidBoard.jspa');
-
   if (urlMatchesBase && isBoardPage) {
-    // Llamamos a nuestra nueva función inteligente.
     injectContentScripts(tab);
   }
 });

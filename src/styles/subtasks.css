@@ -22,7 +22,6 @@ div[data-issuefieldid="subtasks"] {
   min-height: 22px;
 }
 
-
 .subtask-item-main {
   display: flex;
   align-items: center;
@@ -38,18 +37,12 @@ div[data-issuefieldid="subtasks"] {
   flex-shrink: 0;
 }
 
-/*.subtask-title-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}*/
-
 .subtask-title-link {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 }
-
 
 .subtask-item-details {
   display: flex;
@@ -57,12 +50,7 @@ div[data-issuefieldid="subtasks"] {
   flex-shrink: 0;
 }
 
-.subtask-status {
-  white-space: nowrap;
-  margin-right: 8px;
-  color: #5E6C84;
-}
-
+/* --- Estilos para Avatares --- */
 .subtask-avatar {
   width: 20px;
   height: 20px;
@@ -82,4 +70,41 @@ div[data-issuefieldid="subtasks"] {
   width: 60%;
   height: 60%;
   display: block;
+}
+
+/* --- NUEVOS ESTILOS PARA CAMBIO DE ESTADO --- */
+
+.subtask-status {
+  white-space: nowrap;
+  margin-right: 8px;
+  color: #5E6C84;
+}
+
+/* Hace que el span del estado parezca un botón */
+.subtask-status.is-actionable {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.subtask-status.is-actionable:hover {
+  background-color: #DFE1E6; /* Un gris claro de Jira */
+}
+
+/* Estilo para el <select> dropdown */
+.subtask-status-select {
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px;
+  /* Ocupa el mismo espacio que el span del estado */
+  margin-right: 8px; 
+}
+
+.subtask-status-select:focus {
+  outline: none;
+  border-color: #4C9AFF; /* Color de foco de Jira */
+  box-shadow: 0 0 0 1px #4C9AFF;
 }

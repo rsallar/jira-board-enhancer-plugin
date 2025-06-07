@@ -1,22 +1,126 @@
-import '../styles/subtasks.css'; // ¡Importamos su CSS directamente!
+import '../styles/subtasks.css';
 
-// --- SECCIÓN 1: RENDERIZADO DE SUBTAREAS ---
+
+// --- NUEVA FUNCIÓN HELPER PARA TRUNCAR EL ESTADO ---
+function getShortStatus(statusName) {
+  if (!statusName) return '';
+  return statusName.split(' ')[0]; // Divide por espacios y toma la primera palabra
+}
+
+async function showStatusSelector(e) {
+  const statusSpan = e.target;
+  const issueKey = statusSpan.dataset.issueKey;
+  const originalParent = statusSpan.parentElement;
+  const fullStatus = statusSpan.dataset.originalStatus; // El estado completo
+
+  statusSpan.textContent = '...';
+  statusSpan.classList.remove('is-actionable');
+
+  const response = await new Promise(resolve => 
+    chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey }, resolve)
+  );
+
+  if (!response || !response.success) {
+    console.error(`Error al obtener estados para ${issueKey}.`);
+    statusSpan.textContent = getShortStatus(fullStatus); // Usa el helper
+    statusSpan.classList.add('is-actionable');
+    return;
+  }
+  
+  const select = document.createElement('select');
+  select.className = 'subtask-status-select';
+  
+  const currentOption = document.createElement('option');
+  currentOption.disabled = true;
+  currentOption.selected = true;
+  currentOption.textContent = fullStatus; // En el dropdown, mostramos el nombre completo
+  select.appendChild(currentOption);
+  
+  response.data.forEach(transition => {
+    const option = document.createElement('option');
+    option.value = transition.id;
+    option.textContent = transition.name; // El nombre completo en las opciones
+    select.appendChild(option);
+  });
+  
+  originalParent.replaceChild(select, statusSpan);
+  select.focus();
+
+  const handleSelectChange = async () => {
+    if (!select.value) return;
+    const transitionId = select.value;
+    const newStatusName = select.options[select.selectedIndex].text;
+    
+    select.disabled = true;
+
+    const setResponse = await new Promise(resolve => 
+      chrome.runtime.sendMessage({ type: "SET_TRANSITION", issueKey, transitionId }, resolve)
+    );
+
+    if (setResponse && setResponse.success) {
+      const newStatusSpan = createStatusSpan(issueKey, newStatusName);
+      originalParent.replaceChild(newStatusSpan, select);
+    } else {
+      console.error(`Error al cambiar el estado de ${issueKey}.`);
+      originalParent.replaceChild(statusSpan, select);
+      statusSpan.textContent = getShortStatus(fullStatus); // Usa el helper
+      statusSpan.classList.add('is-actionable');
+    }
+  };
+
+  const revertToSpan = () => {
+    if (!select.disabled) {
+        originalParent.replaceChild(statusSpan, select);
+        statusSpan.textContent = getShortStatus(fullStatus); // Usa el helper
+        statusSpan.classList.add('is-actionable');
+    }
+  };
+
+  select.addEventListener('change', handleSelectChange);
+  select.addEventListener('blur', revertToSpan);
+  select.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Escape') revertToSpan();
+  });
+}
+
+// --- createStatusSpan (Modificado para usar el helper) ---
+function createStatusSpan(issueKey, statusName) {
+  const statusSpan = document.createElement('span');
+  statusSpan.className = 'subtask-status is-actionable';
+  
+  // --- ¡AQUÍ ESTÁ LA MODIFICACIÓN PRINCIPAL! ---
+  statusSpan.textContent = getShortStatus(statusName);
+  
+  // Guardamos el nombre completo en el dataset para usarlo después
+  statusSpan.dataset.issueKey = issueKey;
+  statusSpan.dataset.originalStatus = statusName; 
+  
+  statusSpan.title = `Estado: ${statusName} (clic para cambiar)`; // Tooltip mejorado
+  statusSpan.addEventListener('click', showStatusSelector);
+  return statusSpan;
+}
+
+// --- FUNCIÓN PRINCIPAL DE RENDERIZADO (ACTUALIZADA) ---
 function createSubtaskListDOM(subtasksData) {
   if (!subtasksData || subtasksData.length === 0) return null;
   const ul = document.createElement('ul');
   ul.className = 'subtask-list';
   
   subtasksData.forEach(subtask => {
-    // ... tu código para crear li, mainContentSpan, etc. no cambia ...
     const li = document.createElement('li');
     li.className = 'subtask-item';
+
+    li.addEventListener('click', (e) => e.stopPropagation());
+    
     const mainContentSpan = document.createElement('span');
     mainContentSpan.className = 'subtask-item-main';
+    
     const typeIcon = document.createElement('img');
     typeIcon.src = subtask.issueTypeIconUrl;
     typeIcon.alt = subtask.issueType;
     typeIcon.className = 'subtask-issuetype-icon';
     mainContentSpan.appendChild(typeIcon);
+    
     const titleLink = document.createElement('a');
     titleLink.className = 'subtask-title-link';
     titleLink.textContent = subtask.title;
@@ -25,33 +129,27 @@ function createSubtaskListDOM(subtasksData) {
     titleLink.target = '_blank';
     titleLink.rel = 'noopener noreferrer';
     mainContentSpan.appendChild(titleLink);
+    
     li.appendChild(mainContentSpan);
+    
     const detailsSpan = document.createElement('span');
     detailsSpan.className = 'subtask-item-details';
-    const statusSpan = document.createElement('span');
-    statusSpan.className = 'subtask-status';
-    statusSpan.textContent = subtask.status;
+    
+    // Usamos la nueva función helper para el estado
+    const statusSpan = createStatusSpan(subtask.key, subtask.status);
     detailsSpan.appendChild(statusSpan);
 
+    // Lógica para el avatar (con el caso por defecto)
     if (subtask.avatarUrl) {
-      // Caso 1: Hay un asignado, mostramos su imagen.
       const avatarImg = document.createElement('img');
       avatarImg.src = subtask.avatarUrl;
       avatarImg.alt = subtask.assigneeName;
       avatarImg.className = 'subtask-avatar';
       detailsSpan.appendChild(avatarImg);
     } else {
-      // --- CASO 2: NO HAY ASIGNADO ---
-      // Creamos el avatar por defecto.
-
-      // 1. Creamos el contenedor del avatar. Le damos la misma clase
-      //    que a la imagen para que tenga el mismo tamaño y forma (círculo gris).
       const defaultAvatarContainer = document.createElement('span');
-      defaultAvatarContainer.className = 'subtask-avatar default-assignee-icon'; // Añadimos la clase para el color del icono
-      defaultAvatarContainer.title = 'Sin asignar'; // Tooltip para accesibilidad
-
-      // 2. Insertamos el código SVG del icono dentro del contenedor.
-      //    Usamos `innerHTML` porque es la forma más directa de insertar un bloque de SVG.
+      defaultAvatarContainer.className = 'subtask-avatar default-assignee-icon';
+      defaultAvatarContainer.title = 'Sin asignar';
       defaultAvatarContainer.innerHTML = `
         <svg width="24" height="24" viewBox="0 0 24 24" role="presentation">
           <g fill="currentColor" fill-rule="evenodd">
@@ -59,8 +157,6 @@ function createSubtaskListDOM(subtasksData) {
           </g>
         </svg>
       `;
-
-      // 3. Añadimos el nuevo avatar por defecto al DOM.
       detailsSpan.appendChild(defaultAvatarContainer);
     }
     
@@ -71,10 +167,9 @@ function createSubtaskListDOM(subtasksData) {
   return ul;
 }
 
+// --- FUNCIÓN DE PROCESAMIENTO DE TARJETAS (SIN CAMBIOS) ---
 export async function processCards(cardElements) {
-
     const cardsToProcess = cardElements || document.querySelectorAll('div[data-testid="platform-board-kit.ui.card.card"]');
-
     for (const card of cardsToProcess) {
         if (card.dataset.subtasksProcessed === 'true') continue;
         const subtaskContainerSelector = 'div[data-testid="platform-card.common.ui.custom-fields.card-custom-field.html-card-custom-field-content.html-field"][data-issuefieldid="subtasks"]';
@@ -102,5 +197,4 @@ export async function processCards(cardElements) {
         }
         card.dataset.subtasksProcessed = 'true';
     }
-
 }

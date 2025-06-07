@@ -53,6 +53,7 @@ export function initCustomTooltip() {
     };
 
     // Añadimos los listeners.
+    
     document.body.addEventListener('mouseover', handleMouseOver, true);
     document.body.addEventListener('mouseout', handleMouseOut, true);
     document.body.addEventListener('mousemove', handleMouseMove, false);
