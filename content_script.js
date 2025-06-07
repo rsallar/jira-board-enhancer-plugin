@@ -99,124 +99,124 @@ const swimlaneColumnsContainerSelector = '[data-testid="platform-board-kit.ui.sw
 
 // La variable de estado que controla si la columna está colapsada.
 let hideMode = false;
+let masterColumnTitle = null;
 
 /**
  * Aplica el estado actual (colapsado o expandido) a la interfaz de usuario.
  * Esta función es la ÚNICA responsable de modificar el DOM según el valor de `hideMode`.
  */
 function applyCollapseState() {
-    // 1. Encontrar todas las primeras columnas de cada swimlane (fila)
-    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
-    if (swimlaneContainers.length === 0) return;
+    // --- PASO 1 y 2 (Obtener título y columnas) - Sin cambios ---
+    if (!masterColumnTitle) {
+        const titleElement = document.querySelector('[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-name"]');
+        masterColumnTitle = titleElement ? titleElement.textContent.trim() : 'Columna';
+        console.log("Título maestro final detectado y cacheado:", masterColumnTitle);
+    }
+    
+    const firstColumns = Array.from(document.querySelectorAll(swimlaneColumnsContainerSelector))
+        .map(container => container.querySelector(columnWrapperSelector))
+        .filter(Boolean);
 
-    const firstColumns = Array.from(swimlaneContainers).map(container =>
-        container.querySelector(columnWrapperSelector)
-    ).filter(Boolean); // Filtra nulos si alguna fila no tiene columnas
+    if (firstColumns.length === 0) return;
 
-    const firstHeader = document.querySelector(headerSelector);
-    const collapseBtn = document.querySelector('#collapseBtn');
-
-    if (!firstHeader || !collapseBtn) return;
-
-    // 2. Actualizar las clases y estilos de CADA primera columna
+    // --- PASO 3 (Recorrer y aplicar lógica a columnas) - Sin cambios ---
     firstColumns.forEach(column => {
+        // ... (toda la lógica para el título vertical, clases y listeners de clic se queda igual)
+        let verticalTitleElement = column.querySelector('.vertical-column-title');
+        if (!verticalTitleElement) {
+            verticalTitleElement = document.createElement('div');
+            verticalTitleElement.className = 'vertical-column-title';
+            column.appendChild(verticalTitleElement);
+        }
+        if (!verticalTitleElement.textContent && masterColumnTitle) {
+            verticalTitleElement.textContent = masterColumnTitle;
+            verticalTitleElement.title = masterColumnTitle;
+        }
         column.classList.toggle('is-collapsed', hideMode);
-        
-        const contentContainer = column.firstChild.firstChild;
-        if(contentContainer) {
+        const contentContainer = column.firstChild?.firstChild;
+        if (contentContainer) {
             contentContainer.classList.toggle('hide', hideMode);
         }
-    });
-
-    // 3. Actualizar el estilo del grid de CADA contenedor de columnas
-    const allGridParents = new Set(firstColumns.map(c => c.parentElement).filter(Boolean));
-    allGridParents.forEach(gridParent => {
-        const columnCount = gridParent.children.length;
-            
-        if (hideMode) {
-            // Colapsado: primera columna 40px, el resto se reparte el espacio
-            gridParent.style.gridTemplateColumns = "40px " + "minmax(250px, 1fr) ".repeat(columnCount - 2);
-        } else {
-            // Expandido: todas las columnas iguales
-            gridParent.style.gridTemplateColumns = "minmax(250px, 1fr)".repeat(columnCount-1);
+        if (!column.dataset.clickListenerAdded) {
+            column.addEventListener('click', () => {
+                if (hideMode) {
+                    hideMode = false;
+                    applyCollapseState();
+                }
+            });
+            column.dataset.clickListenerAdded = 'true';
         }
     });
 
-    // 4. Actualizar el grid de la cabecera principal y el botón
-    const headerGridParent = firstHeader.parentElement.parentElement.parentElement.parentElement;
+    // --- PASO 4: LÓGICA DE GRID REFACTORIZADA Y UNIFICADA ---
+    
+    // Obtenemos el contenedor de las cabeceras
+    const headerGridParent = document.querySelector(headerSelector)?.parentElement?.parentElement?.parentElement?.parentElement;
+    if (!headerGridParent) return;
+
+    // Calculamos el número de columnas a partir del grid de las cabeceras (la fuente de verdad)
+    const columnCount = headerGridParent.children.length;
+    let gridTemplateStyle;
+
+    // Definimos el estilo del grid UNA SOLA VEZ
     if (hideMode) {
-        // Colapsado
-        headerGridParent.style.gridTemplateColumns = "40px minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
-        collapseBtn.classList.add("btnCollapsed");
-        collapseBtn.parentElement.firstChild.classList.add("hide");
+        gridTemplateStyle = "40px " + "minmax(250px, 1fr) ".repeat(columnCount - 1);
     } else {
-        // Expandido
-        headerGridParent.style.gridTemplateColumns = "minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr) minmax(250px, 1fr)";
-        collapseBtn.classList.remove("btnCollapsed");
-        collapseBtn.parentElement.firstChild.classList.remove("hide");
+        gridTemplateStyle = "minmax(250px, 1fr)".repeat(columnCount);
+    }
+
+    // Aplicamos ESE MISMO ESTILO a las cabeceras
+    headerGridParent.style.gridTemplateColumns = gridTemplateStyle;
+
+    // Y lo aplicamos A TODOS los contenedores de swimlanes
+    const allSwimlaneGrids = new Set(firstColumns.map(c => c.parentElement).filter(Boolean));
+    allSwimlaneGrids.forEach(gridParent => {
+        gridParent.style.gridTemplateColumns = gridTemplateStyle;
+    });
+
+    // --- PASO 5: ACTUALIZAR EL BOTÓN (Lógica simplificada) ---
+    const collapseBtn = document.querySelector('#collapseBtn');
+    if (collapseBtn) {
+        collapseBtn.classList.toggle("btnCollapsed", hideMode);
+        collapseBtn.parentElement.firstChild.classList.toggle("hide", hideMode);
     }
 }
 
 
 /**
  * Función principal que inicializa la funcionalidad de colapso.
- * Se ejecuta una vez para crear el botón y establecer el estado inicial.
+ * Se ejecuta para crear el botón y establecer el estado inicial.
  */
 function initCollapsibleFirstColumn() {
-    // Si el botón ya existe, no hagas nada. Evita duplicados.
+    // Si el botón ya existe, no hacemos nada más que asegurarnos de que el estado es correcto.
     if (document.querySelector('#collapseBtn')) {
-        // Aun así, aplicamos el estado por si el DOM se ha recargado
         applyCollapseState();
         return;
     }
 
-    const firstHeaderText = document.querySelector(headerTextSelector);
-    if (!firstHeaderText) return;
+    // Buscamos la cabecera principal SOLO para añadir el botón.
+    const mainHeaderTextContainer = document.querySelector(headerTextSelector)?.parentElement;
+    if (!mainHeaderTextContainer) return;
 
-    // Crear el botón de colapso
     const btn = document.createElement('button');
     btn.id = 'collapseBtn';
     btn.className = 'horizontal-collapse-btn';
     btn.title = 'Colapsar/Expandir';
     btn.innerHTML = `<svg class="icon-collapse" viewBox="0 0 24 24"><path d="M14 17.364l-6.73-5.364 6.73-5.364v10.728z" fill="currentColor"/></svg><svg class="icon-expand" viewBox="0 0 24 24"><path d="M10 17.364v-10.728l6.73 5.364-6.73 5.364z" fill="currentColor"/></svg>`;
-
-    // Añadir el botón al DOM
-    if (firstHeaderText.parentElement) {
-        firstHeaderText.parentElement.style.display = 'flex';
-        firstHeaderText.parentElement.style.alignItems = 'center';
-        firstHeaderText.parentElement.appendChild(btn);
-    }
     
-    // Crear el título vertical para usarlo cuando esté colapsado
-    const columnTitle = firstHeaderText.firstChild.textContent || 'Columna';
-    const swimlaneContainers = document.querySelectorAll(swimlaneColumnsContainerSelector);
-    const firstColumns = Array.from(swimlaneContainers).map(c => c.querySelector(columnWrapperSelector)).filter(Boolean);
+    mainHeaderTextContainer.style.display = 'flex';
+    mainHeaderTextContainer.style.alignItems = 'center';
+    mainHeaderTextContainer.appendChild(btn);
 
-    firstColumns.forEach(column => {
-        if (!column.querySelector('.vertical-column-title')) {
-             const verticalTitle = document.createElement('div');
-             verticalTitle.className = 'vertical-column-title';
-             verticalTitle.textContent = columnTitle;
-             verticalTitle.title = columnTitle;
-             column.appendChild(verticalTitle);
-        }
-    });
-
-
-    // --- El cambio más importante está aquí ---
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        
-        // 1. Cambia el estado
         hideMode = !hideMode;
-        
-        // 2. Aplica los cambios a la UI INMEDIATAMENTE
         applyCollapseState();
     });
 
-    // Aplica el estado inicial cuando se carga el script
-    applyCollapseState();
+    applyCollapseState(); // Aplicamos el estado inicial.
+    console.log("Jira Collapser: Botón de colapso inicializado.");
 }
 
 // ==========================================================
