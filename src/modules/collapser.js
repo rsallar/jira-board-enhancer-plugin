@@ -14,7 +14,7 @@ let masterColumnTitle = null;
 /**
  * Aplica el estado actual (colapsado o expandido) a la interfaz de usuario.
  * Esta función es la ÚNICA responsable de modificar el DOM según el valor de `hideMode`.
- */
+ */ 
 function applyCollapseState() {
     // --- PASO 1 y 2 (Obtener título y columnas) - Sin cambios ---
     if (!masterColumnTitle) {
@@ -97,7 +97,9 @@ function applyCollapseState() {
  * Función principal que inicializa la funcionalidad de colapso.
  * Se ejecuta para crear el botón y establecer el estado inicial.
  */
-function initCollapsibleFirstColumn() {
+export function initCollapsibleFirstColumn() {
+
+    
     // Si el botón ya existe, no hacemos nada más que asegurarnos de que el estado es correcto.
     if (document.querySelector('#collapseBtn')) {
         applyCollapseState();
