@@ -1,0 +1,85 @@
+/* --- Estilos para la Lista de Subtareas --- */
+div[data-issuefieldid="subtasks"] {
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.subtask-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+}
+
+.subtask-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid #EEE;
+  line-height: 1.4;
+  min-height: 22px;
+}
+
+
+.subtask-item-main {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+  margin-right: 8px;
+}
+
+.subtask-issuetype-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  flex-shrink: 0;
+}
+
+/*.subtask-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}*/
+
+.subtask-title-link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.subtask-item-details {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.subtask-status {
+  white-space: nowrap;
+  margin-right: 8px;
+  color: #5E6C84;
+}
+
+.subtask-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background-color: #DFE1E6;
+}
+
+.default-assignee-icon {
+  color: #505F79;
+}
+
+.default-assignee-icon svg {
+  width: 60%;
+  height: 60%;
+  display: block;
+}

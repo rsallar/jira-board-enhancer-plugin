@@ -5,13 +5,14 @@
   "description": "Displays sub-task details in a table on Jira cards.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "https://paradigma.atlassian.net/*"
   ],
   "background": {
-    "service_worker": "background_min.js"
+    "service_worker": "background.js"
   },
    "icons": {
     "16": "images/icon16.png",
@@ -25,17 +26,5 @@
       "32": "images/icon32.png"
     },
     "default_title": "improve your jira board"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://*.atlassian.net/secure/RapidBoard.jspa*", 
-        "https://*.atlassian.net/jira/software/projects/*/boards/*", 
-        "https://paradigma.atlassian.net/jira/software/*"
-
-      ],
-      "js": ["content_script_min.js"],
-      "css": ["styles.css"]
-    }
-  ]
+  }
 }
