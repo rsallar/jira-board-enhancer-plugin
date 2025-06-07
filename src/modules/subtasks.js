@@ -1,56 +1,75 @@
 import '../styles/subtasks.css';
 
-// --- ¡NUEVO PATRÓN SINGLETON PARA EL ESTADO! ---
-// Comprobamos si nuestro objeto de estado global ya existe.
-// Si no existe, lo creamos. Esto solo se ejecutará la primera vez.
-if (!window.JiraEnhancerState) {
-  window.JiraEnhancerState = {
-    customPopup: null,    // Referencia al panel del selector de estado
-    activeTrigger: null,  // Referencia al botón que abrió el panel
-  };
-}
-// ------------------------------------------------
 
 // Ahora, en lugar de usar variables globales, usaremos las propiedades
 // de nuestro objeto singleton: window.JiraEnhancerState.customPopup, etc.
 
 export function initCustomStatusSelector() {
-    if (document.getElementById('custom-status-popup')) return;
+  if (document.getElementById('custom-status-popup')) return;
+  
+  const state = window.JiraEnhancerState.statusSelector;
+  state.customPopup = document.createElement('div');
+  state.customPopup.id = 'custom-status-popup';
+  document.body.appendChild(state.customPopup);
+  
+  // --- ¡NUEVO LISTENER DE MOUSE DOWN! ---
+  // Este es nuestro "escudo". Se ejecuta en la fase de captura (true)
+  // para ser el primero en actuar.
+  document.body.addEventListener('mousedown', (e) => {
+    // Si el mousedown ocurre sobre nuestro botón de estado...
+    const statusTrigger = e.target.closest('.status-selector-trigger');
+    if (statusTrigger) {
+      // ...detenemos el evento inmediatamente. Esto previene que el listener
+      // de Jira en la tarjeta padre se active y comience la navegación.
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true); // <-- El 'true' es vital para usar la fase de captura.
+
+
+  // --- NUESTRO LISTENER DE CLICK (AHORA SEGURO) ---
+  // Este listener ahora se ejecutará sin que Jira interfiera,
+  // porque el mousedown ya ha sido neutralizado.
+  document.body.addEventListener('click', (e) => {
+    // Comprobamos si el clic fue en nuestro botón de estado
+    const statusTrigger = e.target.closest('.status-selector-trigger');
+    if (statusTrigger) {
+      // Como ya hemos prevenido la acción por defecto en el mousedown,
+      // aquí solo nos preocupamos de abrir nuestro selector.
+      openCustomStatusSelector(statusTrigger);
+      return;
+    }
+
+    // El resto de la lógica de delegación para cerrar el popup y
+    // manejar otros clics se queda igual.
+    const titleLink = e.target.closest('.subtask-title-link');
+    if (titleLink) {
+        e.stopPropagation();
+        return;
+    }
     
-    // --- 1. CREAMOS EL POPUP ---
-    window.JiraEnhancerState.customPopup = document.createElement('div');
-    window.JiraEnhancerState.customPopup.id = 'custom-status-popup';
-    document.body.appendChild(window.JiraEnhancerState.customPopup);
+    const subtaskItem = e.target.closest('.subtask-item');
+    if (subtaskItem) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
     
-    // --- 2. USAMOS DELEGACIÓN DE EVENTOS ---
-    document.body.addEventListener('click', (e) => {
-        const { customPopup, activeTrigger } = window.JiraEnhancerState;
+    if (state.customPopup.classList.contains('is-visible') && !e.target.closest('#custom-status-popup')) {
+        state.customPopup.classList.remove('is-visible');
+    }
+  });
 
-        // Lógica para cerrar el popup si se clica fuera
-        if (customPopup.classList.contains('is-visible') && !customPopup.contains(e.target) && e.target !== activeTrigger) {
-            customPopup.classList.remove('is-visible');
-        }
-
-        // Lógica para abrir el popup
-        const statusTrigger = e.target.closest('.status-selector-trigger');
-        if (statusTrigger) {
-            openCustomStatusSelector(statusTrigger);
-        }
-
-        // Lógica para detener el clic en la fila
-        const subtaskItem = e.target.closest('.subtask-item');
-        if (subtaskItem) {
-            e.stopPropagation();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => { /* ... tu código no cambia ... */ });
+  document.addEventListener('keydown', (e) => {
+      const { customPopup } = window.JiraEnhancerState.statusSelector;
+      if (e.key === 'Escape' && customPopup.classList.contains('is-visible')) {
+        customPopup.classList.remove('is-visible');
+      }
+   });
 }
 
 async function openCustomStatusSelector(triggerButton) {
   // Obtenemos las referencias de nuestro objeto de estado global
-  const { customPopup } = window.JiraEnhancerState;
-  let { activeTrigger } = window.JiraEnhancerState;
+ const { customPopup, activeTrigger } = window.JiraEnhancerState.statusSelector;
 
   // Los datos de la subtarea los obtenemos del dataset del botón
   const issueKey = triggerButton.dataset.issueKey;
@@ -63,7 +82,7 @@ async function openCustomStatusSelector(triggerButton) {
   }
   
   // Actualizamos el trigger activo en nuestro objeto de estado
-  window.JiraEnhancerState.activeTrigger = triggerButton;
+  window.JiraEnhancerState.statusSelector.activeTrigger = triggerButton;
   
   // Mostramos el estado de carga y limpiamos el contenido anterior del popup
   triggerButton.classList.add('is-loading');

@@ -1,15 +1,35 @@
-// Las importaciones siempre en el nivel superior del módulo.
-import { processCards } from './modules/subtasks.js';
+import { processCards, initCustomStatusSelector } from './modules/subtasks.js';
 import { initCollapsibleFirstColumn } from './modules/collapser.js';
 import { initCustomTooltip } from './modules/tooltip.js';
-import { initCustomStatusSelector } from './modules/subtasks.js'; // <-- IMPORTAMOS LA NUEVA FUNCIÓN
 
+// --- ¡NUEVO PATRÓN SINGLETON CENTRALIZADO! ---
+// Comprobamos si nuestro objeto de estado global ya existe.
+// Si no, lo creamos con TODOS los estados necesarios para la extensión.
+if (!window.JiraEnhancerState) {
+  window.JiraEnhancerState = {
+    // Estado para el selector de estado
+    statusSelector: {
+      customPopup: null,
+      activeTrigger: null,
+    },
+    // Estado para el colapsador de columnas
+    collapser: {
+      hideMode: false,
+      masterColumnTitle: null,
+      // Los selectores son constantes, pero los ponemos aquí para evitar redeclararlos
+      headerSelector: '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]',
+      headerTextSelector: '[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-title"]',
+      columnWrapperSelector: '[data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"]',
+      swimlaneColumnsContainerSelector: '[data-testid="platform-board-kit.ui.swimlane.swimlane-columns"]',
+    }
+  };
+}
 
-// Función principal que contiene toda la lógica.
 function main() {
-  console.log("Jira Enhancer Inicializado por primera vez!");
+  console.log("Jira Enhancer (vVite) Inicializado por primera vez!");
+
   initCustomStatusSelector(); 
-  // --- FUNCIÓN DEBOUNCE (Utilidad General) ---
+
   function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -21,42 +41,28 @@ function main() {
       timeout = setTimeout(later, wait);
     };
   }
-
-  // --- INICIALIZACIÓN Y OBSERVER ---
   const debouncedInit = debounce(() => {
     processCards();
     initCollapsibleFirstColumn();
     initCustomTooltip();
   }, 200);
-
-  const observer = new MutationObserver(() => {
-    debouncedInit();
-  });
-
+  const observer = new MutationObserver(() => { debouncedInit(); });
   function startObserver() {
     const boardAreaSelector = 'div[data-testid="software-board.board-area"]';
     const boardAreaContainer = document.querySelector(boardAreaSelector);
-
     if (boardAreaContainer) {
       observer.observe(boardAreaContainer, { childList: true, subtree: true });
-      debouncedInit(); // Llamada inicial
-      console.log("Observer iniciado en el board area.");
+      debouncedInit();
     } else {
       observer.observe(document.body, { childList: true, subtree: true });
-      console.log("Observer iniciado en el body (fallback).");
     }
   }
-
   startObserver();
 }
 
-
-// ==========================================================
-// EL GUARDIÁN Y PUNTO DE ENTRADA
-// ==========================================================
 if (!window.jiraEnhancerLoaded) {
   window.jiraEnhancerLoaded = true;
-  main(); // <-- Llamamos a nuestra función principal solo si no se ha cargado antes.
+  main();
 } else {
   console.log("Jira Enhancer ya está cargado. Omitiendo reinicialización.");
 }
