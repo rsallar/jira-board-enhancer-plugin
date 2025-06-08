@@ -70,6 +70,16 @@ The Jira Enhancer icon should now appear in your browser's toolbar.
 
 ---
 
+## ❤️ Support the Project
+
+If you find this extension useful and want to show your appreciation, please consider buying me a coffee! Your support helps me dedicate more time to maintaining this project and developing new features.
+
+<a href="https://www.buymeacoffee.com/rsallar" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
+</a>
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! If you have ideas for new features, bug fixes, or improvements, please feel free to:

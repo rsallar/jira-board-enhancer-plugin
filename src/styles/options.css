@@ -190,3 +190,55 @@ h1 {
     text-align: center;
     margin: 0;
 }
+
+.button-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap; /* Allows buttons to stack on smaller screens */
+}
+
+.github-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #24292e; /* GitHub text color */
+    background-color: #fafbfc; /* GitHub button background */
+    border: 1px solid rgba(27, 31, 35, 0.15);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.github-btn:hover {
+    background-color: #f3f4f6;
+    border-color: rgba(27, 31, 35, 0.35);
+}
+
+.github-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+/* --- Styles for "Buy Me a Coffee" Button --- */
+.bmac-btn {
+    display: inline-block;
+    line-height: 0; /* Prevents extra space below the image */
+}
+
+.bmac-img {
+    height: 50px; /* Adjust height as needed */
+    width: auto;
+    border-radius: 8px; /* Slightly rounded corners */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.bmac-btn:hover .bmac-img {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
