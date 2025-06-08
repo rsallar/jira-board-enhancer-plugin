@@ -173,3 +173,20 @@ h1 {
     color: #7A869A;
 }
 
+.config-image-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f4f5f7;
+    border: 1px dashed #dfe1e6;
+    border-radius: 4px;
+}
+.config-image-container img {
+    max-width: 100%;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.image-placeholder {
+    color: #7a869a;
+    text-align: center;
+    margin: 0;
+}

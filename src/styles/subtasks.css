@@ -9,6 +9,9 @@
   pointer-events: none !important;
 }
 
+[data-testid="software-board.board-container.board.card-group.card-group"] * {
+  pointer-events: none !important;
+}
 
 [data-testid="software-board.board-container.board.card-group.card-group"] > div > ul {
    min-height: 0 !important;
