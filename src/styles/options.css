@@ -1,6 +1,4 @@
-/* src/styles/options.css */
 
-/* --- Base & Fonts --- */
 body {
     background-color: #f4f5f7;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -16,7 +14,7 @@ body {
     width: 100%;
 }
 
-/* --- Header --- */
+
 .header {
     text-align: center;
     margin-bottom: 40px;
@@ -37,7 +35,6 @@ h1 {
     margin: 0;
 }
 
-/* --- Card Layout --- */
 .card {
     background-color: #ffffff;
     border-radius: 8px;
@@ -61,7 +58,6 @@ h1 {
     color: #42526E;
 }
 
-/* --- How It Works Section --- */
 .how-it-works-content {
     display: flex;
     align-items: center;
@@ -80,7 +76,6 @@ h1 {
     margin: 0 auto;
 }
 
-/* --- Input & Button Styles --- */
 .input-group {
     display: flex;
     gap: 10px;
@@ -114,13 +109,12 @@ h1 {
     background-color: #0065FF;
 }
 
-/* --- Status & List Styles --- */
 #status {
     margin-top: 15px;
     font-weight: 500;
     padding: 10px;
     border-radius: 4px;
-    display: none; /* Only show when it has content */
+    display: none; 
 }
 #status:not(:empty) {
     display: block;
@@ -168,14 +162,14 @@ h1 {
     background-color: #DE350B;
     color: #ffffff;
 }
-.delete-btn { /* Overriding old style */
-    text-indent: -9999px; /* Hide the text "Remove" if it's there */
+.delete-btn { 
+    text-indent: -9999px; 
     line-height: 0;
 }
 
-/* --- Footer --- */
 .footer {
     text-align: center;
     margin-top: 40px;
     color: #7A869A;
 }
+

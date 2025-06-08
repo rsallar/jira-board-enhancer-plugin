@@ -1,14 +1,9 @@
-/* --- Estilos para Colapso Horizontal de la Primera Columna --- */
 
-/* Contenedor principal de la columna */
 [data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"] {
   position: relative;
-  overflow: hidden;
-  /* Animación suave para el cambio de tamaño */
   transition: width 0.2s ease-in-out, min-width 0.2s ease-in-out;
 }
 
-/* El botón para colapsar/expandir */
 .horizontal-collapse-btn {
   background: none;
   border: none;
@@ -20,7 +15,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto; /* Empuja el botón a la derecha del título */
+  margin-left: auto;
   flex-shrink: 0;
 }
 .horizontal-collapse-btn:hover {
@@ -37,7 +32,7 @@
 .horizontal-collapse-btn .icon-expand { display: none; }
 .horizontal-collapse-btn .icon-collapse { display: block; }
 
-/* Título vertical que se muestra cuando está colapsado */
+
 .vertical-column-title {
   display: none;
   position: absolute;
@@ -57,9 +52,10 @@
 }
 
 
-/* --- ESTADO COLAPSADO --- */
+
 
 .is-collapsed {
+  overflow: hidden;
   width: 40px !important;
   min-width: 40px !important;
   cursor: pointer;
@@ -70,12 +66,12 @@
     display: none !important;
 }
 
-/* Mostrar el título vertical */
+
 .is-collapsed .vertical-column-title {
   display: block;
 }
 
-/* Reposicionar el botón en modo colapsado */
+
 .btnCollapsed {
   left: 10px;
   transform: rotate(180deg);
@@ -84,6 +80,7 @@
   top: 15px;
 }
 
-/* Cambiar el icono del botón */
+
 .is-collapsed .horizontal-collapse-btn .icon-expand { display: block; }
 .is-collapsed .horizontal-collapse-btn .icon-collapse { display: none; }
+

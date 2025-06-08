@@ -1,19 +1,16 @@
-#custom-subtask-tooltip {
-  /* Posicionamiento y Visibilidad */
-  position: absolute; /* Se posicionará relativo al body */
-  display: none;      /* Oculto por defecto */
-  z-index: 10000;     /* Asegura que esté por encima de todo */
 
-  /* Estilo visual */
-  background-color: #172B4D; /* Color oscuro de Jira */
+#custom-subtask-tooltip {
+
+  position: absolute;
+  display: none;      
+  z-index: 10000;    
+  background-color: #172B4D; 
   color: #fff;
   padding: 6px 10px;
   border-radius: 3px;
   font-size: 12px;
   line-height: 1.4;
-  max-width: 300px; /* Evita que sea excesivamente ancho */
+  max-width: 300px; 
   text-align: left;
-
-  /* Comportamiento del ratón */
-  pointer-events: none; /* El tooltip no interfiere con el ratón */
+  pointer-events: none; 
 }

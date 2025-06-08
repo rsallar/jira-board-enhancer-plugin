@@ -55,7 +55,7 @@ function applyCollapseState() {
     if (state.hideMode) {
         gridTemplateStyle = "40px " + "minmax(250px, 1fr) ".repeat(columnCount - 1);
     } else {
-        gridTemplateStyle = "minmax(250px, 1fr)".repeat(columnCount);
+        gridTemplateStyle = "minmax(250px, 1fr) ".repeat(columnCount);
     }
 
     headerGridParent.style.gridTemplateColumns = gridTemplateStyle;
