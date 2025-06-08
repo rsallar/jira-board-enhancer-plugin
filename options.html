@@ -1,34 +1,67 @@
+<!-- options.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Jira Enhancer Options</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        h1 { font-size: 1.5em; }
-        input { width: 300px; padding: 5px; }
-        button { padding: 5px 10px; margin-left: 10px; }
-        ul { list-style: none; padding: 0; margin-top: 20px; }
-        li { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #ccc; }
-        .delete-btn { background-color: #ffdddd; border: 1px solid #ffaaaa; cursor: pointer; }
-        #status { margin-top: 15px; font-style: italic; color: green; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jira Enhancer Settings</title>
+    <!-- Link to our new stylesheet -->
+    <link rel="stylesheet" href="/src/styles/options.css">
 </head>
 <body>
-    <h1>Jira Sub-task Enhancer Settings</h1>
-    <h2>Configured Jira Instances</h2>
-    <p>Add the base URL for each Jira instance you want to use (e.g., https://your-company.atlassian.net).</p>
-    
-    <div>
-        <input type="text" id="jira-url-input" placeholder="https://company.atlassian.net">
-        <button id="add-btn">Add Instance</button>
+
+    <div class="container">
+        <header class="header">
+            <img src="/images/icon48.png" alt="Jira Enhancer Icon" class="logo">
+            <h1>Welcome to Jira Board Enhancer!</h1>
+            <p class="subtitle">Here’s how to get started and manage your settings.</p>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2>How It Works</h2>
+                <div class="how-it-works-content">
+                    <div class="explanation">
+                        <h3>Automatic Detection</h3>
+                        <p>
+                            When you visit a Jira site that isn't enabled yet, the extension icon will show a <strong>question mark badge</strong>.
+                        </p>
+                        <p>
+                            Just <strong>click the icon</strong>, and Chrome will ask for your permission to activate the extension for that site.
+                        </p>
+                    </div>
+                    <div class="image-container">
+                        <!-- Make sure you have this image in your /public/images/ folder -->
+                        <img src="/images/badge-example.jpg" alt="Icon with a question mark badge" class="badge-example-img">
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Manage Jira Instances</h2>
+                <p>You can also manually add your Jira site URLs here. Enter the base URL (e.g., <strong>https://your-company.atlassian.net</strong>).</p>
+                
+                <div class="input-group">
+                    <input type="text" id="jira-url-input" placeholder="https://your-company.atlassian.net">
+                    <button id="add-btn">Add Instance</button>
+                </div>
+
+                <div id="status"></div>
+                
+                <h3>Enabled Instances:</h3>
+                <ul id="jira-instances-list">
+                    <!-- The list of instances will be populated here by JavaScript -->
+                    <li class="placeholder">No instances configured yet.</li>
+                </ul>
+            </section>
+        </main>
+        
+        <footer class="footer">
+            <p>Jira Board Enhancer</p>
+        </footer>
     </div>
 
-    <div id="status"></div>
-
-    <ul id="jira-instances-list">
-        <!-- List will be populated by JavaScript -->
-    </ul>
-
-   <script type="module" src="/src/options.js"></script>
+    <!-- The script link remains the same -->
+    <script type="module" src="/src/options.js"></script>
 </body>
 </html>

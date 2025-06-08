@@ -176,3 +176,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
+
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+        console.log("Jira Enhancer: First-time installation. Opening options page for onboarding.");
+        // Open the options page. It's the official and best way.
+        chrome.runtime.openOptionsPage();
+    }
+});

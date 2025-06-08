@@ -1,0 +1,181 @@
+/* src/styles/options.css */
+
+/* --- Base & Fonts --- */
+body {
+    background-color: #f4f5f7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #172B4D;
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+}
+
+/* --- Header --- */
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.logo {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+}
+h1 {
+    font-size: 2em;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+}
+.subtitle {
+    font-size: 1.1em;
+    color: #5E6C84;
+    margin: 0;
+}
+
+/* --- Card Layout --- */
+.card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    padding: 25px 30px;
+    margin-bottom: 25px;
+}
+.card h2 {
+    font-size: 1.5em;
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #DFE1E6;
+}
+.card h3 {
+    margin-top: 25px;
+    font-size: 1.1em;
+    color: #42526E;
+}
+.card p {
+    line-height: 1.6;
+    color: #42526E;
+}
+
+/* --- How It Works Section --- */
+.how-it-works-content {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+.explanation {
+    flex: 2;
+}
+.image-container {
+    flex: 1;
+    text-align: center;
+}
+.badge-example-img {
+    max-width: 100px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* --- Input & Button Styles --- */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+#jira-url-input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    font-size: 1em;
+    border: 1px solid #DFE1E6;
+    border-radius: 4px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+#jira-url-input:focus {
+    outline: none;
+    border-color: #0052CC;
+    box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.2);
+}
+#add-btn {
+    padding: 10px 20px;
+    font-size: 1em;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #0052CC;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#add-btn:hover {
+    background-color: #0065FF;
+}
+
+/* --- Status & List Styles --- */
+#status {
+    margin-top: 15px;
+    font-weight: 500;
+    padding: 10px;
+    border-radius: 4px;
+    display: none; /* Only show when it has content */
+}
+#status:not(:empty) {
+    display: block;
+}
+#jira-instances-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+}
+#jira-instances-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #EBECF0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+#jira-instances-list li:last-child {
+    border-bottom: none;
+}
+.placeholder {
+    color: #7A869A;
+    font-style: italic;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.delete-btn {
+    background-color: #FFEBEC;
+    color: #DE350B;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+.delete-btn:before {
+    content: '✖';
+    font-size: 14px;
+}
+.delete-btn:hover {
+    background-color: #DE350B;
+    color: #ffffff;
+}
+.delete-btn { /* Overriding old style */
+    text-indent: -9999px; /* Hide the text "Remove" if it's there */
+    line-height: 0;
+}
+
+/* --- Footer --- */
+.footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #7A869A;
+}
