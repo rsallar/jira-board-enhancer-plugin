@@ -1,3 +1,20 @@
+/* 1. Apuntamos al grupo de subtareas que está anidado */
+[data-testid="software-board.board-container.board.card-group.card-group"] {
+  height: 0 !important;          /* Colapsa su altura a cero */
+  min-height: 0 !important;       /* Anula el min-height de Jira */
+  overflow: hidden !important;    /* Oculta cualquier contenido que se desborde */
+  margin: 0 !important;           /* Elimina cualquier margen */
+  padding: 0 !important;          /* Elimina cualquier padding */
+  opacity: 0 !important;          /* Lo hace completamente invisible */
+  pointer-events: none !important;/* Desactiva cualquier interacción */
+}
+
+/* 2. Por si acaso, también apuntamos al 'ul' que tiene el min-height */
+/*    y nos aseguramos de que no tenga espacio extra. */
+[data-testid="software-board.board-container.board.card-group.card-group"] > div > ul {
+   min-height: 0 !important;
+}
+
 /* --- Estilos para la Lista de Subtareas (Sin cambios) --- */
 div[data-issuefieldid="subtasks"] {
   margin-top: 6px;

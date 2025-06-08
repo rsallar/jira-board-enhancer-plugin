@@ -6,14 +6,16 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://paradigma.atlassian.net/*"
+    "tabs",
+    "storage"
+  ],  
+  "optional_host_permissions": [
+    "*://*/*" 
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "options_page": "options.html",
    "icons": {
     "16": "images/icon16.png",
     "32": "images/icon32.png",
@@ -25,6 +27,7 @@
       "16": "images/icon16.png",
       "32": "images/icon32.png"
     },
-    "default_title": "improve your jira board"
+    
+    "default_title": "Improve your jira board"
   }
 }

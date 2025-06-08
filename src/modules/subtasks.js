@@ -48,7 +48,7 @@ async function openCustomStatusSelector(e) {
   customPopup.innerHTML = '';
 
   const response = await new Promise(resolve => 
-    chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey }, resolve)
+    chrome.runtime.sendMessage({ type: "GET_TRANSITIONS", issueKey, jiraUrl: window.location.origin }, resolve)
   );
 
   triggerButton.classList.remove('is-loading');
@@ -80,7 +80,7 @@ async function openCustomStatusSelector(e) {
       customPopup.classList.remove('is-visible');
 
       const setResponse = await new Promise(resolve => 
-        chrome.runtime.sendMessage({ type: "SET_TRANSITION", issueKey, transitionId: optionButton.dataset.transitionId }, resolve)
+        chrome.runtime.sendMessage({ type: "SET_TRANSITION", issueKey, transitionId: optionButton.dataset.transitionId, jiraUrl: window.location.origin }, resolve)
       );
 
       triggerButton.classList.remove('is-loading');
@@ -176,7 +176,7 @@ function createSubtaskListDOM(subtasksData) {
         const li = document.createElement('li');
         li.className = 'subtask-item';
         // El listener de clic se maneja por delegación, así que no se añade aquí.
-
+        li.addEventListener('click', (e) => e.stopPropagation());
         const mainContentSpan = document.createElement('span');
         mainContentSpan.className = 'subtask-item-main';
 
@@ -272,7 +272,8 @@ export async function processCards(cardElements) {
     const response = await new Promise(resolve => {
         chrome.runtime.sendMessage({
             type: "GET_MULTIPLE_SUBTASK_DETAILS",
-            issueKeys: Array.from(allSubtaskKeys)
+            issueKeys: Array.from(allSubtaskKeys),
+            jiraUrl: window.location.origin
         }, resolve);
     });
 

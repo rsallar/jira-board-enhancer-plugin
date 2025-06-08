@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'src/main.js'),
         background: resolve(__dirname, 'src/background.js'),
+        options: resolve(__dirname, 'options.html'),
       },
       output: {
         // [name] será reemplazado por el nombre de la entrada (e.g., 'main', 'background').
@@ -29,12 +30,13 @@ export default defineConfig({
           if (assetInfo.name === 'main.css') {
             return 'styles.css';
           }
-          return 'assets/[name].[ext]';
+           return 'assets/[name].[ext]';
         },
       },
     },
     // Desactivamos la minificación para que sea más fácil depurar durante el desarrollo.
     // Para la versión final que subas a la tienda, puedes cambiarlo a 'esbuild' o 'terser'.
-    minify: 'esbuild', 
+    //minify: 'esbuild', 
+    minify: false, 
   },
 });
