@@ -1,6 +1,6 @@
 # Jira Enhancer Chrome Extension
 
-![Jira Enhancer Logo](./icons/icon128.png)
+https://github.com/rsallar/jira-board-enhancer-plugin/blob/master/public/images/icon128.png
 
 Jira Enhancer is a browser extension designed to supercharge your Jira board experience. It injects a set of powerful, quality-of-life features directly into the Jira interface, helping you and your team stay more organized and efficient.
 
