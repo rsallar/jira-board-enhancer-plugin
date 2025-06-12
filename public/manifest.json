@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Jira Sub-task Enhancer",
-  "version": "0.2.0",
-  "description": "Displays sub-task details, allows status changes on Jira cards and allow collapsing the first column.",
+  "name": "Jira Board Enhancer",
+  "version": "0.3.0",
+  "description": "Improves Jira Board",
   "permissions": [
     "activeTab",
     "scripting",
@@ -28,6 +28,6 @@
       "32": "images/icon32.png"
     },
     
-    "default_title": "Improve your jira board"
+    "default_title": "Jira Board Enhancer"
   }
 }
