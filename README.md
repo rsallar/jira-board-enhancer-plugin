@@ -41,7 +41,7 @@ To display the inline sub-tasks, you must add the "Sub-Tasks" field to your card
 
 ### From the Chrome Web Store (Recommended)
 
-*Coming soon! Once the extension is published, a link will be available here.*
+[Link](https://chromewebstore.google.com/detail/jira-board-enhancer/nkeimjniabecobgofpmbdhphbelgbobe)
 
 ### Manual Installation (For Development)
 
