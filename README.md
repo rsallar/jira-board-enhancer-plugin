@@ -43,6 +43,9 @@ To display the inline sub-tasks, you must add the "Sub-Tasks" field to your card
 
 [Link](https://chromewebstore.google.com/detail/jira-board-enhancer/nkeimjniabecobgofpmbdhphbelgbobe)
 
+### From the Firefox Web Store (Recommended)
+[Link](https://addons.mozilla.org/en-US/firefox/addon/jira-board-enhancer/)
+
 ### Manual Installation (For Development)
 
 If you want to install the extension from the source code:
